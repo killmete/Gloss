@@ -167,7 +167,7 @@ def main() -> None:
         path = tin.get("file_path") or tin.get("notebook_path") or ""
         if path:
             check_write(norm(path), tool)
-    elif tool == "Bash":
+    elif tool in {"Bash", "PowerShell"}:
         check_bash(str(tin.get("command", "")))
 
     sys.exit(0)

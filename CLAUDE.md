@@ -96,7 +96,9 @@ Run `safeguard` before declaring any phase or slice done.
   because they contain other people's chats.
 
 ## Commands
-- Setup: `uv sync`
+- Setup: `uv sync`. If `.venv` doesn't exist, first run `uv python install 3.12`, then
+  `& (uv python find 3.12) -m venv .venv --without-pip`. Smart App Control blocks the launcher
+  `uv venv` creates, so never create or recreate `.venv` with uv itself.
 - Run: `uv run gloss`
 - Tests: `uv run pytest` (fast) · `uv run pytest -m golden` · `uv run pytest -m bench`
 - Lint: `uv run ruff check . && uv run ruff format --check .`
