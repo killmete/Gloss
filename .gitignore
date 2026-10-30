@@ -1,0 +1,43 @@
+# Python / uv
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Builds
+build/
+dist/
+*.spec
+*.egg-info/
+*.onefile-build/
+*.dist/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Logs and debug output (may contain chats or screenshots)
+*.log
+logs/
+debug_frames/
+
+# Unlock files are the user's, per machine. Freeze markers (*_FROZEN) ARE committed.
+.claude/*_UNLOCK
+.claude/settings.local.json
+
+# Repo is public: golden data holds other people's names and chats, so it stays local.
+tests/golden/images/*
+!tests/golden/images/README.md
+tests/golden/expected/*
+!tests/golden/expected/.gitkeep

@@ -1,0 +1,83 @@
+# Gloss glossary — Chinese gaming-companion platform slang → English
+# Seeded from real screens on the 东东电竞 (Dongdong Esports) platform.
+# Edit freely: Gloss reloads this file when it changes.
+# Fields: term (source), en (preferred translation), note (optional, shown in "explain" mode)
+
+version: 1
+source_lang: zh
+target_lang: en
+terms:
+  # --- People & roles ---
+  - {term: 板板, en: boss, note: "Playful word for a paying customer"}
+  - {term: 老板, en: boss, note: "Paying customer"}
+  - {term: 老大, en: big boss, note: "Customer, affectionate"}
+  - {term: 陪玩, en: game companion, note: "Paid gaming partner"}
+  - {term: 陪陪, en: companion, note: "Cute form of 陪玩"}
+  - {term: 大神, en: top player, note: "Highly skilled player for hire"}
+  - {term: 老师, en: (polite title), note: "Respectful address for a skilled player; often omit in English"}
+  - {term: 客服, en: customer service}
+  - {term: 女陪, en: female companion}
+  - {term: 男陪, en: male companion}
+  - {term: 姐姐, en: (friendly address to a woman), note: "Literally 'big sister'"}
+
+  # --- Orders & money ---
+  - {term: 派单, en: dispatch an order}
+  - {term: 接单, en: take an order}
+  - {term: 抢单, en: grab an order}
+  - {term: 下单, en: place an order}
+  - {term: 点单, en: hire / order this person}
+  - {term: 客服派单, en: posted by customer service}
+  - {term: 用户派单, en: posted by the buyer}
+  - {term: 单飞了, en: the order slipped away, note: "Missed an order because you weren't there"}
+  - {term: 试音, en: voice test, note: "Buyer hears your voice before choosing"}
+  - {term: 不试音, en: no voice test}
+  - {term: 钻石, en: Diamonds, note: "Paid in-app currency"}
+  - {term: 猫粮, en: Cat Food, note: "Earnings currency, withdrawable"}
+  - {term: 东东币, en: Dongdong Coins}
+  - {term: 东东值, en: Dongdong Points, note: "Membership XP from spending"}
+  - {term: 打赏, en: tip}
+  - {term: 提现, en: withdraw}
+  - {term: 兑换, en: exchange}
+  - {term: 待结算, en: pending settlement}
+
+  # --- Places in the app ---
+  - {term: 东友圈, en: Dongyou Circle, note: "Community feed"}
+  - {term: 吃瓜, en: gossip, note: "Lit. 'eating melon' — watching drama"}
+  - {term: 公屏, en: public chat}
+  - {term: 麦序, en: mic queue}
+  - {term: 上麦, en: get on mic}
+  - {term: 评审团, en: Review Panel}
+  - {term: 技能卡, en: skill card}
+  - {term: 资质描述, en: skill description}
+  - {term: 陪玩宣言, en: companion statement}
+  - {term: 生活照, en: lifestyle photos}
+  - {term: 飞机票, en: room link, note: "Lit. 'plane ticket' — shortcut into a room"}
+
+  # --- Gaming ---
+  - {term: 开黑, en: team up, note: "Play together on voice chat"}
+  - {term: 顶猎, en: Apex Predator, note: "Top Apex Legends rank"}
+  - {term: 猎杀, en: Predator / kill-focused, note: "Rank name, or an aggressive kill-chasing play style"}
+  - {term: 大师, en: Master}
+  - {term: 钻石段, en: Diamond rank}
+  - {term: 钻排, en: Diamond ranked}
+  - {term: 铂金, en: Platinum}
+  - {term: 黄金, en: Gold}
+  - {term: 下三, en: Bronze–Gold, note: "The lower three ranks"}
+  - {term: 匹配, en: pubs, note: "Unranked matchmaking"}
+  - {term: 外卡, en: Wildcard mode}
+  - {term: 上分, en: rank up}
+  - {term: 主突破, en: main fragger}
+  - {term: 指挥, en: IGL / shot-caller}
+  - {term: 键鼠, en: mouse & keyboard}
+  - {term: 三角洲, en: Delta Force}
+  - {term: 粥, en: Delta Force, note: "Nickname: 三角洲 sounds like 三角粥"}
+  - {term: 八宝粥, en: Delta Force, note: "Nickname for Delta Force"}
+  - {term: 烽火地带, en: Delta Force extraction mode}
+  - {term: 1p2, en: 1 companion + 2 bosses, note: "Full trio: you plus two customers"}
+
+  # --- Chat slang ---
+  - {term: 发财, en: get rich / land an order, note: "Joking: who gave you an order?"}
+  - {term: 豆包, en: Doubao, note: "ByteDance's AI chatbot; 'Doubao flavour' = sounds AI-written"}
+  - {term: "///", en: "(blushing)"}
+  - {term: "520", en: "I love you", note: "Number pun"}
+  - {term: "1314", en: forever, note: "Number pun"}
