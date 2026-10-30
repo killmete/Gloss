@@ -15,7 +15,7 @@ Written 2026-10-30 by the architect. Decisions and reasons: `docs/adr/ADR-0001-s
 | Cost control | $10 a month and $0.50 an hour, with a warning at 80%. |
 | App | PySide6-Essentials, PyInstaller one-folder build, Windows `RegisterHotKey` for hotkeys. |
 
-**Benchmark on your 19 screenshots.** Accuracy is provisional until the drafts are confirmed. Speed is from your 16-core CPU, so a 4-8 core PC may be 2-4x slower.
+**Benchmark on your 19 screenshots.** The user confirmed the expected text on 2026-10-31, including its 16 lines marked `[?]`. Speed is from your 16-core CPU, so a 4-8 core PC may be 2-4x slower.
 
 | Engine | All pages | Chat | Menus | Typical time | Peak RAM |
 |---|---|---|---|---|---|
@@ -36,7 +36,6 @@ Small reads chat as well as medium, and only small fits the 400 MB target. Windo
 
 | # | Decision | Why it matters |
 |---|---|---|
-| 1 | Check the expected text for each screenshot, especially image 19 and lines marked `[?]`. **Needed.** | Every accuracy number stays provisional until then. |
 | 2 | Do you have an Anthropic API key, or will you create one? Is a **$10 monthly limit** in Gloss OK? Please also set a spend limit in the Anthropic console. | The spikes and real translation need the key. $10 is about 250 busy hours. The console limit is the only hard stop, because the limit in Gloss is a local estimate. |
 | 3 | Quick checks, below. | They close known gaps in testing. |
 
@@ -151,7 +150,7 @@ uv run --no-project --with keyring keyring set gloss/anthropic api_key
 ```
 
 - Test scripts read the key inside the program and report only results.
-- Tests use hand-written lines, not real chat, because Anthropic's retention terms are not yet checked.
+- Tests use hand-written lines, not real chat, so test data never includes other people's chats.
 
 | Spike | Question | Pass |
 |---|---|---|
@@ -187,6 +186,8 @@ Also from `prior-art.md`, for the Phase 3 backlog: re-assert topmost on the over
 - `RegisterHotKey` works with a Qt filter, tested with a synthetic key press.
 - The Qt-only PyInstaller probe is 93 MB one-folder and 37.7 MB one-file. 15 of its 58 binaries are unsigned.
 
+**Anthropic privacy pages (read 2026-10-31):** API inputs and outputs are deleted within 30 days, flagged content is kept up to 2 years, and they are not used for training by default. One developer docs page words retention differently and gives no number.
+
 **From vendor or official docs, not tested by us:** Claude model IDs, prices, rate limits, caching rules and thinking behaviour; WGC and DXGI platform rules.
 
 **Unverified or unmeasured:**
@@ -200,7 +201,7 @@ Also from `prior-art.md`, for the Phase 3 backlog: re-assert topmost on the over
 - WGC yellow border in an unpackaged app.
 - Full build size. A rough sum of parts is 340 MB, or 470 MB with medium bundled.
 - Nuitka, which never built; antivirus results.
-- Anthropic API data-retention terms; DeepL Free terms if it is ever added.
+- Anthropic's Commercial Terms (not read), and whether staff ever review standard API text (not confirmed); DeepL Free terms if it is ever added.
 
 ## Contradictions between reports, and how they were resolved
 
