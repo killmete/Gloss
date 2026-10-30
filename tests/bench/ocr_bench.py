@@ -54,7 +54,7 @@ def run(eng, arr):
     if r is None or r.txts is None:
         return []
     out = []
-    for box, t, s in zip(r.boxes, r.txts, r.scores):
+    for box, t, s in zip(r.boxes, r.txts, r.scores, strict=False):
         b = np.asarray(box)
         out.append(
             {

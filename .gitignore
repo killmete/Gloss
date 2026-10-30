@@ -32,6 +32,11 @@ secrets/
 logs/
 debug_frames/
 
+# Spike output (spend records and raw API results)
+tests/bench/spikes/out*/
+tests/bench/spikes/**/spend.txt
+tests/bench/spikes/**/*.json
+
 # Unlock files are the user's, per machine. Freeze markers (*_FROZEN) ARE committed.
 .claude/*_UNLOCK
 .claude/settings.local.json

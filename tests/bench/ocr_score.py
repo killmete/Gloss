@@ -1,4 +1,4 @@
-"""Score _raw_<variant>.json against draft expected text. PROVISIONAL until user confirms drafts.
+"""Score _raw_<variant>.json (kept in _draft/) against the frozen, human-checked expected text.
 
 uv run --no-project --python 3.12 --with rapidfuzz==3.14.6 python tests/bench/ocr_score.py
 Metric (order-independent, because layouts are multi-column):
@@ -19,7 +19,8 @@ from rapidfuzz.distance import Levenshtein
 from rapidfuzz.fuzz import partial_ratio_alignment
 
 ROOT = Path(__file__).resolve().parents[2]
-D = ROOT / "tests/golden/expected/_draft"
+E = ROOT / "tests/golden/expected"  # frozen expected text, read only
+D = E / "_draft"  # raw OCR output and miss reports
 CAT = {
     1: "chat",
     2: "profile",
@@ -45,7 +46,7 @@ CAT = {
 
 def norm(s):
     s = unicodedata.normalize("NFKC", s).replace("[?]", "")
-    return "".join(c for c in s.lower() if not unicodedata.category(c)[0] in "PSZC")
+    return "".join(c for c in s.lower() if unicodedata.category(c)[0] not in "PSZC")
 
 
 def best_err(e, cands):
@@ -70,20 +71,17 @@ def score(exp_lines, ocr_lines):
 
 
 def main():
-    stems = sorted(p.stem for p in D.glob("Screenshot*.txt"))
+    stems = sorted(p.stem for p in E.glob("Screenshot*.txt"))
     res = {}
     for raw in sorted(D.glob("_raw_*.json")):
         data = json.loads(raw.read_text(encoding="utf-8"))
         per = {}
         miss_txt = []
         for i, st in enumerate(stems, 1):
-            exp = [
-                norm(l)
-                for l in (D / f"{st}.txt").read_text(encoding="utf-8").splitlines()
-            ]
+            exp = [norm(x) for x in (E / f"{st}.txt").read_text(encoding="utf-8").splitlines()]
             exp = [e for e in exp if len(e) >= 2]
             key = f"img{i:02d}"
-            ocr = [norm(l["text"]) for l in data["images"][key]["lines"]]
+            ocr = [norm(ln["text"]) for ln in data["images"][key]["lines"]]
             errs = score(exp, ocr)
             tot = sum(len(e) for e, _ in errs)
             err_chars = sum(len(e) * x for e, x in errs)
@@ -99,15 +97,13 @@ def main():
             bad = [f"{x:.2f} {e}" for e, x in errs if x > 0.2]
             # OCR lines absent from the draft: either draft gaps or OCR hallucinations
             extra = [
-                f"[extra] {l['text']} (score {l['score']:.2f})"
-                for l in data["images"][key]["lines"]
-                if len(norm(l["text"])) >= 2 and best_err(norm(l["text"]), exp) > 0.3
+                f"[extra] {ln['text']} (score {ln['score']:.2f})"
+                for ln in data["images"][key]["lines"]
+                if len(norm(ln["text"])) >= 2 and best_err(norm(ln["text"]), exp) > 0.3
             ]
             bad += extra
             miss_txt.append(f"== {key} {st}\n" + "\n".join(bad))
-        (D / f"_misses_{data['variant']}.txt").write_text(
-            "\n".join(miss_txt), encoding="utf-8"
-        )
+        (D / f"_misses_{data['variant']}.txt").write_text("\n".join(miss_txt), encoding="utf-8")
         res[data["variant"]] = {"per": per, "peak": data["peak_rss_mb"]}
     for v, r in res.items():
         print(f"\n### {v}  peak RSS {r['peak']:.0f} MB")
@@ -118,9 +114,7 @@ def main():
                 f"{k} {p['cat']:10s} acc {1 - p['err'] / max(1, p['chars']):.3f} "
                 f"recall {p['found']}/{p['lines']} ocr_lines {p['n_ocr']} {p['ms']:.0f}ms"
             )
-        for c, group in list(cats.items()) + [
-            ("ALL", [x for grp in cats.values() for x in grp])
-        ]:
+        for c, group in list(cats.items()) + [("ALL", [x for grp in cats.values() for x in grp])]:
             ch = sum(p["chars"] for p in group)
             er = sum(p["err"] for p in group)
             ln = sum(p["lines"] for p in group)
@@ -129,7 +123,8 @@ def main():
             p95 = ms[min(len(ms) - 1, int(0.95 * len(ms)))]
             print(
                 f"CAT {c:10s} n={len(group)} acc {1 - er / ch:.3f} recall {fd}/{ln}={fd / ln:.3f} "
-                f"missed/20 {(ln - fd) / ln * 20:.1f} ms median {statistics.median(ms):.0f} p95 {p95:.0f}"
+                f"missed/20 {(ln - fd) / ln * 20:.1f} "
+                f"ms median {statistics.median(ms):.0f} p95 {p95:.0f}"
             )
 
 

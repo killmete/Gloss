@@ -1,7 +1,7 @@
 # ADR-0001: Stack for Gloss MVP
 
-- Status: **Proposed**, pending user approval at Checkpoint 1
-- Date: 2026-10-30
+- Status: **Accepted** 2026-10-31. The user's "go" was relayed by the orchestrator at Checkpoint 1.
+- Date: 2026-10-30, updated 2026-10-31
 - Evidence: `docs/research/SUMMARY.md` and the reports it cites
 
 ## Context
@@ -11,9 +11,9 @@ Phase 1 tested the default stack in `CLAUDE.md` against SPEC targets: chat line 
 - Smart App Control is off on the user's PC, so it is a distribution concern only.
 - The repo is public.
 
-Later inputs from the user: translation should be free, or else as cheap and good as possible, and Claude Haiku 5.5 is their chosen translator; the Windows Chinese OCR pack is installed; Korean is not needed; Japanese is a maybe. They have not yet confirmed having an Anthropic key.
+Later inputs from the user: translation should be free, or else as cheap and good as possible, and Claude Haiku 5.5 is their chosen translator; the Windows Chinese OCR pack is installed; Korean is not needed; Japanese is a maybe; the user has an Anthropic key; HDR is off on both monitors.
 
-All accuracy figures are provisional until the golden drafts are confirmed. All timings come from a 16-core 9950X3D, which is also the user's own PC, and vary by about +/- 30%.
+All accuracy figures stand on the expected text the user confirmed on 2026-10-31. It is identical to the drafts that were scored, so no score moved. All timings come from a 16-core 9950X3D, which is also the user's own PC, and vary by about +/- 30%.
 
 ## Decision summary
 
@@ -29,7 +29,7 @@ All accuracy figures are provisional until the golden drafts are confirmed. All 
 | Packaging | PyInstaller one-folder, no UPX |
 | Hotkeys | `RegisterHotKey` through a Qt native event filter |
 
-**Change to `CLAUDE.md`: none.** Anthropic stays the primary. The one departure from its Stack text is that the second provider is the optional `quickmt` pack, not DeepL. CLAUDE.md requires user approval before that text changes.
+**Change to `CLAUDE.md`: Stack text and source languages.** Anthropic stays the primary. The departures are that the second provider is the optional `quickmt` pack, not DeepL, and that the source languages are zh, en and ja. CLAUDE.md requires user approval before that text changes.
 
 ## 1. Capture
 
@@ -82,7 +82,7 @@ All accuracy figures are provisional until the golden drafts are confirmed. All 
 
 **Decision: Windows OCR stays registered but is not an automatic fallback.**
 
-With the Chinese pack installed it was measured on the same 19 images and drafts (provisional): 77.0% all, 70.0% chat, 59.5% line recall, 8.1 lines missed per 20, 51 ms median. That is 27 points under the chat gate, too wide a gap for draft errors to explain. It has no Japanese or Korean recogniser here.
+With the Chinese pack installed it was measured on the same 19 images: 77.0% all, 70.0% chat, 59.5% line recall, 8.1 lines missed per 20, 51 ms median. That is 27 points under the chat gate. It has no Japanese or Korean recogniser here.
 
 - **Why it is not in `ocr.fallbacks`.** Bad OCR is worse than no OCR here. The user cannot read Chinese, so garbled text sent to translation returns confident English they cannot check. It also joins neighbouring columns, which can merge different speakers into one line, and it wastes API spend. Jittery text would also weaken dedupe.
 - **Why it stays registered.** The adapter is small, it proves `ocr.engine` swaps by config, and it gives the user a manual option if RapidOCR cannot load.
@@ -118,11 +118,11 @@ SPEC's end-to-end target stays p50 at most 1.5 s, p95 at most 3 s, and is **unpr
 
 If these do not meet the target on measurement, raise it with the user rather than quietly weakening it.
 
-## 4. Accuracy threshold for SPEC section 8.2 (proposed)
+## 4. Accuracy threshold for SPEC section 8.2
 
 Scored with `tests/bench/ocr_score.py`, fast profile, on confirmed text.
 
-| Scope | Character accuracy | Line recall | Provisional v6 small | Type |
+| Scope | Character accuracy | Line recall | Measured v6 small | Type |
 |---|---|---|---|---|
 | Chat | >= 97.0% | >= 95.0% (1 miss per 20) | 97.9% / 97.1% | Acceptance gate |
 | All images | >= 95.0% | >= 92.0% | 96.5% / 93.8% | Acceptance gate |
@@ -132,11 +132,11 @@ Scored with `tests/bench/ocr_score.py`, fast profile, on confirmed text.
 
 The `accurate` profile adds menu >= 97.0% / 95.0%.
 
-These sit 1-2 points below today's scores (character accuracy), so they guard against regression. They do not prove quality independently. If the confirmed text moves any score by more than one point, the thresholds are re-proposed to the user, never adjusted silently. The order-card row needs real pop-up cards, because the one image is a listing page. Section 8.2 is read as every line OCR returned gets a translation; lines OCR misses fall under recall.
+These sit 1-2 points below today's scores (character accuracy), so they guard against regression. They do not prove quality independently. Any change to these thresholds goes to the user and is never made silently. The order-card row needs real pop-up cards, because the one image is a listing page. Section 8.2 is read as every line OCR returned gets a translation; lines OCR misses fall under recall.
 
 ## 5. Translation
 
-**Decision by the user:** Claude Haiku 5.5 is the translator. The user prefers free or cheap, and has not yet confirmed having an Anthropic key. Evidence: `translation.md` and `translation-free-options.md`.
+**Decision by the user:** Claude Haiku 5.5 is the translator. The user prefers free or cheap, and has an Anthropic key. Evidence: `translation.md` and `translation-free-options.md`.
 
 **Options:** Haiku 5.5, Sonnet 5.5, Gemini free tier, DeepL Free, quickmt, LibreTranslate/Argos, Google, `null`.
 
@@ -158,11 +158,17 @@ These sit 1-2 points below today's scores (character accuracy), so they guard ag
 - Rejected as live default: Sonnet 5.5 (19x the cost, and thinking cannot be disabled). It stays a config option for later low-volume features.
 
 **Free options, on their merits:**
-- Gemini free tier: $0, but its terms allow human reviewers to read input and output and allow use for product improvement. That conflicts with the privacy rule for other people's chats. Anthropic's own retention terms are unresearched, so this weighs a known problem against an unchecked one.
+- Gemini free tier: $0, but its terms allow human reviewers to read input and output and allow use for product improvement. That conflicts with the privacy rule for other people's chats.
 - DeepL Free: stays out of the MVP. It needs its own adapter, is capped at 500,000 characters a month, handles slang through glossary entries only, and its retention terms are unverified. It adds little beside `quickmt`.
 - LibreTranslate: 429 MB install, a server process, the weaker engine in the smoke test, and no documented glossary. Public instances send text to strangers.
 - Stock `argostranslate`: pulls in PyTorch through `stanza`.
 - `quickmt`: free and private, kept as the optional pack below.
+
+**Anthropic data handling (privacy pages read 2026-10-31):**
+- API inputs and outputs are deleted within 30 days ([retention](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)).
+- Content flagged by automated trust and safety systems is kept up to 2 years, and its classification scores up to 7 years.
+- API data is not used for training by default ([training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)).
+- Unconfirmed: whether staff ever review standard API text. The Commercial Terms have not been read.
 
 **`quickmt` is optional, because it cannot fit the RAM target.**
 - The model is 407 MB on disk at about 200M parameters. Loaded as int8, weights alone are about 200 MB by arithmetic. RAM is unmeasured, but the app has only 56 MB of headroom over OCR, so the verdict does not depend on the exact number. Estimated total is 550 MB or more.
@@ -182,7 +188,7 @@ These sit 1-2 points below today's scores (character accuracy), so they guard ag
 - If spike 1 finds worse quality or leaked reasoning, the default becomes adaptive thinking with low effort, as a config change only.
 - Both values are config and stay constant at runtime, because changing effort invalidates the message cache. The adapter checks model capability, because Sonnet 5.5 rejects `disabled`.
 
-**Spikes before Haiku is relied on.** All three use hand-written lines, not real chat, and need the user's key in keyring:
+**Spikes before Haiku is relied on.** All three use hand-written lines, not real chat, and read the user's key from keyring:
 1. Thinking and quality: 100 lines at thinking off, effort low and default settings, compared with Sonnet 5.5. Record latency, tokens, quality and refusals.
 2. `count_tokens` on 50 lines, to replace the 1.3 tokens-per-character guess.
 3. Caching: `cache_read_input_tokens > 0` on the second call, with structured output on.
@@ -245,24 +251,26 @@ A request count blocks a legitimate busy room (1,200 requests per hour at batch 
 - Bindings are released on exit.
 - Delivery inside real games and from a frozen build is still unverified, so both go on the Phase 4 test list.
 
-## SPEC changes implied (to apply after approval)
+## SPEC changes
+
+Applied to `docs/SPEC.md` on 2026-10-31, with final contract details in ADR-0002 and ADR-0003.
 
 - Section 4: per-mode capture source, `ocr.profile`, empty `ocr.fallbacks`, `languages` without `ko`, `min_confidence` 0.5, `batch_max_wait_ms` 200, `translate.fallbacks` of `null` only by default (DeepL removed), thinking and effort keys, budget section instead of `max_requests_per_hour`.
 - Section 5: OCR load failure now means red status and a manual option, not an automatic next engine.
 - Section 7: add the per-region table.
-- Section 8.2: add the thresholds. Its translation requirement needs an Anthropic key.
+- Section 8.2: add the thresholds. Its translation requirement needs an Anthropic key in keyring.
 - Section 3 (Phase 2 contract work): stable monitor ID, optional `Frame.fresh`, per-line translation failure, usage reporting, `TextBlock.confidence` allowing "unknown", a low-quality marker on OCR output.
 
 ## Consequences overall
 
 - The stack stays small and the MVP keeps a single process.
 - Two things can still fail: end-to-end latency (it depends on new-lines-only OCR and unmeasured Haiku latency) and total RAM (only 56 MB of headroom for Qt and the app).
-- Without an Anthropic key, Gloss runs but shows original text. Phase 3 can proceed on a fake translator.
+- Without a key in keyring, Gloss runs but shows original text. Phase 3 can proceed on a fake translator.
 - There is no automatic OCR backup. This is deliberate: a visible failure is better than convincing wrong text.
 
 ## Revisit when
 
-- Confirmed drafts move any score by more than one point, or new order-card images fail the floors.
+- New order-card images fail the floors, or a change to the expected text moves any score by more than one point.
 - Native-size region tests show small recovers the lost text. The `accurate` profile may then be dropped, or medium's menu gain shrinks.
 - Windows OCR with upscaling reaches the thresholds on Chinese.
 - RapidOCR 3.11 changes models or fixes #743, or the app runs on an Intel CPU.
@@ -271,5 +279,5 @@ A request count blocks a legitimate busy room (1,200 requests per hour at batch 
 - quickmt RAM is measured, or a smaller offline model proves good enough.
 - The user adds Japanese screenshots or asks for Korean.
 - Total RAM exceeds 400 MB in the Phase 4 benchmark.
-- The user wants to distribute Gloss, or HDR turns out to be on.
+- The user wants to distribute Gloss, or turns HDR on (capture with HDR on is untested).
 - `mss` shows repeated black frames, or `windows-capture` becomes unmaintained.

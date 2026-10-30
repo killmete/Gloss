@@ -1,6 +1,6 @@
 # Gloss research summary (Phase 1)
 
-Written 2026-10-30 by the architect. Decisions and reasons: `docs/adr/ADR-0001-stack.md` (status: proposed). Free translation options: `translation-free-options.md`.
+Written 2026-10-30 by the architect. Decisions and reasons: `docs/adr/ADR-0001-stack.md` (status: accepted 2026-10-31). Free translation options: `translation-free-options.md`.
 
 ## One-screen summary
 
@@ -36,11 +36,10 @@ Small reads chat as well as medium, and only small fits the 400 MB target. Windo
 
 | # | Decision | Why it matters |
 |---|---|---|
-| 2 | Do you have an Anthropic API key, or will you create one? Is a **$10 monthly limit** in Gloss OK? Please also set a spend limit in the Anthropic console. | The spikes and real translation need the key. $10 is about 250 busy hours. The console limit is the only hard stop, because the limit in Gloss is a local estimate. |
+| 2 | Is a **$10 monthly limit** in Gloss OK? Please also set a spend limit in the Anthropic console. | $10 is about 250 busy hours. The console limit is the only hard stop, because the limit in Gloss is a local estimate. |
 | 3 | Quick checks, below. | They close known gaps in testing. |
 
 Quick checks:
-- Is HDR on for either monitor? (Settings > System > Display > HDR)
 - Can you add 2-3 screenshots of real pop-up order cards? The only "order card" image so far is a listing page.
 - If you might read Japanese apps, can you add 2-3 Japanese screenshots? Japanese is untested on real screens.
 
@@ -48,7 +47,7 @@ Note: if you turn Smart App Control back on, an unsigned Gloss will probably be 
 
 ---
 
-## Benchmark detail (provisional)
+## Benchmark detail
 
 Character accuracy and line recall on 19 real screenshots. Harness: `tests/bench/`, full method in `ocr-benchmark.md`.
 
@@ -71,7 +70,7 @@ Medium does not help order cards: it scored slightly below small there. Its gain
 
 Time per OCR call is about **110 ms + 10 ms per text line** on this PC. This is my straight-line fit to the 19 per-image times, so it is approximate. Timings vary by about +/- 30%.
 
-**Proposed accuracy threshold (SPEC section 8.2):** chat at least 97.0% characters and 95.0% line recall; all images at least 95.0% and 92.0%. Lower regression floors per category are in the ADR. These sit 1-2 points below today's scores, so they catch regressions rather than prove quality. If the confirmed text moves any score by more than one point, they come back to you.
+**Proposed accuracy threshold (SPEC section 8.2):** chat at least 97.0% characters and 95.0% line recall; all images at least 95.0% and 92.0%. Lower regression floors per category are in the ADR. These sit 1-2 points below today's scores, so they catch regressions rather than prove quality. The confirmed text matched the drafts, so no score moved.
 
 ## Latency
 
@@ -120,7 +119,7 @@ You prefer free or cheap, so here is the choice in plain terms: the free options
 
 ## Windows OCR
 
-**Measured** with the Chinese pack you installed, on the same 19 images and provisional drafts:
+**Measured** with the Chinese pack you installed, on the same 19 images:
 
 | Category | Character accuracy | Line recall | Missed per 20 lines |
 |---|---|---|---|
@@ -140,7 +139,7 @@ The pack is not wasted: it gives you that manual option, and it let us measure t
 
 ## Phase 2 spikes that need your Anthropic key
 
-These wait until you have a key. Development can continue on a fake translator until then.
+These need your key in keyring. Development can continue on a fake translator until then.
 
 **Rules:**
 - You store the key yourself, once. No agent sees it, and it is never put in a file, printed or logged. The prompt hides what you type:
@@ -177,7 +176,7 @@ Also from `prior-art.md`, for the Phase 3 backlog: re-assert topmost on the over
 ## Measured and unverified
 
 **Measured on this PC:**
-- All OCR numbers above, provisional on the drafts, including Windows OCR on Chinese.
+- All OCR numbers above, including Windows OCR on Chinese.
 - quickmt 18 ms and Argos 23 ms per line on 16 hand-written lines, with informal quality judgement.
 - All four capture backends hide a window flagged `WDA_EXCLUDEFROMCAPTURE` (Tk window). A Qt click-through overlay was also hidden from `mss`.
 - `mss` takes 7-13 ms per grab.
@@ -196,7 +195,7 @@ Also from `prior-art.md`, for the Phase 3 backlog: re-assert topmost on the over
 - Idle and active CPU; any 4-8 core timing; issue #743 (medium and small may run 4-11x slower on some CPUs).
 - Japanese on real screenshots; Korean beyond one test image.
 - quickmt RAM.
-- HDR; mixed-DPI; exclusive fullscreen.
+- Mixed-DPI; exclusive fullscreen. HDR is off on both monitors, so capture with HDR on stays untested.
 - Qt overlay exclusion against WGC; hotkeys inside games and in frozen builds.
 - WGC yellow border in an unpackaged app.
 - Full build size. A rough sum of parts is 340 MB, or 470 MB with medium bundled.
@@ -214,7 +213,7 @@ Also from `prior-art.md`, for the Phase 3 backlog: re-assert topmost on the over
 | `ocr-benchmark.md` says 7-10 ms per line, but its own table shows 8-40 ms per line | The first figure is the slope. There is also a fixed cost of about 110 ms per call. |
 | `ocr-benchmark.md` says v5 server has the "same score" as medium, "no reason to prefer it" | The claim is too strong: server beats medium on chat, order cards and recall, and has a lower p95 (5.9 s against 6.8 s). Medium still wins on RAM, disk and median time, and the gaps are small on this sample. |
 | `ocr.md` and `prior-art.md` recommend Windows OCR as a fallback, and `prior-art.md` calls it zero-install | Measured at 70.0% on chat, and the pack needs admin rights. Manual low-quality mode only. |
-| ADR-0001 uses the optional `quickmt` pack as second provider; the CLAUDE.md Stack text names DeepL | `quickmt` is free and private. CLAUDE.md is updated after your approval. |
+| ADR-0001 uses the optional `quickmt` pack as second provider; the CLAUDE.md Stack text names DeepL | `quickmt` is free and private. The CLAUDE.md update waits for your own approval. |
 | `translation.md` recommends DeepL Free as first fallback | DeepL stays out of the MVP: it needs an adapter, has a monthly cap, and its retention is unverified. An outage shows original text unless the offline pack is on. |
 | SPEC section 5 moves a failed OCR engine to the next in the list, but the OCR fallback list is now empty | ADR-0001 uses red status plus a manual option. The Phase 4 drill must expect that. |
 | CLAUDE.md says source language is auto-detected, including ko, th and ru | The MVP reads only zh, en and ja. |

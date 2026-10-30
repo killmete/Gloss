@@ -85,6 +85,7 @@ Not measured either: Anthropic latency (needs a key), Chinese token counts (need
 
 ### 5.4 Fallback chain
 Anthropic -> DeepL (free tier 500,000 chars/month, covers about 28 busy hours or 185 light hours per month by my numbers) -> null (show original, status amber). Optional later: local quickmt adapter as "offline" provider, after a CPU benchmark and a chat-slang quality check.
+**Superseded:** the accepted chain is `anthropic`, optional `quickmt`, `null`; see `docs/adr/ADR-0001-stack.md` section 5.
 
 ## 6. Cost model
 

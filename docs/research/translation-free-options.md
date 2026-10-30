@@ -78,7 +78,7 @@ LLM quality is much better than NMT here (section 3.2), so glossary and context 
 
 ## 8. Risks and unknowns
 
-1. Haiku 5.5 latency, slang quality and refusal rate are unmeasured. Anthropic data-retention terms are unresearched (`translation.md` risk 8).
+1. Haiku 5.5 latency, slang quality and refusal rate are unmeasured. Anthropic retention (read 2026-10-31): API inputs and outputs are deleted within 30 days, flagged content is kept up to 2 years, and they are not used for training by default. Whether staff ever review standard API text is unconfirmed, and the Commercial Terms have not been read.
 2. quickmt: 407 MB, RAM and cold start unmeasured, self-reported quality, slang weak; the 16-line comparison is informal.
 3. Gemini and DeepSeek prices change (Gemini 3.8 Flash doubles on 2027-01-01).
 4. LibreTranslate public pricing evidence conflicts ($9/$19/$58).
@@ -99,4 +99,6 @@ LLM quality is much better than NMT here (section 3.2), so glossary and context 
 - Argos model index: https://raw.githubusercontent.com/argosopentech/argospm-index/main/index.json
 - quickmt-zh-en: https://huggingface.co/quickmt/quickmt-zh-en
 - DeepL retention (third party, weak): https://conductatlas.com/platform/deepl/deepl-privacy-policy/
+- Anthropic retention (read 2026-10-31): https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data
+- Anthropic training (read 2026-10-31): https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training
 - Local data: `docs/research/data/translation_free_offline_samples.md`; scripts `docs/research/scratch/bench_argos_zh_en.py`, `docs/research/scratch/bench_quickmt_cpu.py`

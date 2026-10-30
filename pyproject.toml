@@ -1,0 +1,61 @@
+[project]
+name = "gloss"
+version = "0.1.0"
+description = "Real-time screen OCR translator for Windows"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "anthropic>=2.3.0",
+    "keyring>=25.7.0",
+    "mss==10.2.0",
+    "numpy>=2.5.4",
+    "onnxruntime==1.31.1",
+    "packaging>=26.3",
+    "pydantic>=2.14.2",
+    "pyside6-essentials>=6.12,<6.13",
+    "pyyaml>=6.0.3",
+    "rapidfuzz>=3.14.6",
+    "rapidocr==3.10.0",
+    "tomli-w>=1.2.0",
+    "windows-capture==2.0.1",
+]
+
+[project.scripts]
+gloss = "gloss.app:main"
+
+[project.optional-dependencies]
+offline = [
+    "ctranslate2>=4.8.4",
+    "sentencepiece>=0.2.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["docs/research/scratch", ".claude/hooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "--strict-markers -m 'not golden and not bench and not e2e'"
+markers = [
+    "contract: adapter contract suites in tests/contract/ (fast, part of the default run)",
+    "golden: accuracy checks on real screenshots (local only)",
+    "bench: latency, CPU and RAM benchmarks",
+    "e2e: end-to-end replay through the real pipeline",
+    "windows_only: needs real Windows APIs",
+]
+
+[dependency-groups]
+dev = [
+    "pillow>=13.0.0",
+    "psutil>=7.2.2",
+    "pytest>=9.2.0",
+    "ruff==0.17.3",
+]

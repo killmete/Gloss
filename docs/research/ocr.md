@@ -194,12 +194,18 @@ swap `cases()` for image paths and a hand-typed expected-text file.) Minimal use
 ```python
 import numpy as np
 from rapidocr import RapidOCR, ModelType as M
-eng = RapidOCR(params={
-    "Det.limit_type": "max", "Det.limit_side_len": 960,
-    "EngineConfig.onnxruntime.intra_op_num_threads": 2,
-    "EngineConfig.onnxruntime.inter_op_num_threads": 1,
-    "Global.text_score": 0.5, "Global.log_level": "warning"})
-r = eng(np_bgr_image)          # BGR ndarray (cv2 order)
+
+eng = RapidOCR(
+    params={
+        "Det.limit_type": "max",
+        "Det.limit_side_len": 960,
+        "EngineConfig.onnxruntime.intra_op_num_threads": 2,
+        "EngineConfig.onnxruntime.inter_op_num_threads": 1,
+        "Global.text_score": 0.5,
+        "Global.log_level": "warning",
+    }
+)
+r = eng(np_bgr_image)  # BGR ndarray (cv2 order)
 # r.boxes (N,4,2), r.txts, r.scores ; r is None-like when empty (txts is None)
 ```
 Variants to compare (add `Det.ocr_version`, `Det.model_type`, `Rec.ocr_version`, `Rec.model_type`,

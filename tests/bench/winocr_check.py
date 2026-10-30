@@ -1,7 +1,14 @@
 """Check which Windows.Media.Ocr languages exist, time en-US if present. No installs.
 
 Run:
-  uv run --no-project --python 3.12 --with pillow==13.0.0 --with winrt-runtime==4.0.3 \n    --with winrt-Windows.Media.Ocr==4!10.0.28000.2705 --with winrt-Windows.Globalization==4!10.0.28000.2705 --with winrt-Windows.Graphics.Imaging==4!10.0.28000.2705 --with winrt-Windows.Storage.Streams==4!10.0.28000.2705 --with winrt-Windows.Foundation==4!10.0.28000.2705 --with winrt-Windows.Foundation.Collections==4!10.0.28000.2705 \n    python -I tests/bench/winocr_check.py
+  uv run --no-project --python 3.12 --with pillow==13.0.0 --with winrt-runtime==4.0.3
+    --with winrt-Windows.Media.Ocr==4!10.0.28000.2705
+    --with winrt-Windows.Globalization==4!10.0.28000.2705
+    --with winrt-Windows.Graphics.Imaging==4!10.0.28000.2705
+    --with winrt-Windows.Storage.Streams==4!10.0.28000.2705
+    --with winrt-Windows.Foundation==4!10.0.28000.2705
+    --with winrt-Windows.Foundation.Collections==4!10.0.28000.2705
+    python -I tests/bench/winocr_check.py
 """
 
 import asyncio
@@ -32,9 +39,7 @@ async def load(p):
 
 
 async def main():
-    print(
-        "available:", [l.language_tag for l in OcrEngine.available_recognizer_languages]
-    )
+    print("available:", [lang.language_tag for lang in OcrEngine.available_recognizer_languages])
     for tag in ["zh-Hans-CN", "zh-Hans", "zh-CN", "ja", "ko", "en-US"]:
         print(tag, "supported:", OcrEngine.is_language_supported(Language(tag)))
     eng = OcrEngine.try_create_from_language(Language("en-US"))
