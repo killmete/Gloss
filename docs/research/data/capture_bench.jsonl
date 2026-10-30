@@ -1,0 +1,22 @@
+docs\research\scratch\capture_bench.py:56: DeprecationWarning: mss.mss is deprecated and will be removed in a future release; use mss.MSS instead
+  sct = mss.mss()
+{"shape": [1080, 1920, 4], "ms_median": 13.39, "ms_p95": 14.97, "cpu_pct_of_one_core_at_4fps": 0.0, "n": 40, "backend": "mss", "mode": "full"}
+docs\research\scratch\capture_bench.py:56: DeprecationWarning: mss.mss is deprecated and will be removed in a future release; use mss.MSS instead
+  sct = mss.mss()
+{"shape": [600, 800, 4], "ms_median": 7.4, "ms_p95": 8.38, "cpu_pct_of_one_core_at_4fps": 0.16, "n": 40, "backend": "mss", "mode": "region"}
+{"shape": [1080, 1920, 4], "ms_median": 6.74, "ms_p95": 10.32, "cpu_pct_of_one_core_at_4fps": 2.97, "n": 40, "backend": "dxgi_wc", "mode": "full"}
+{"shape": [600, 800, 4], "ms_median": 5.66, "ms_p95": 8.42, "cpu_pct_of_one_core_at_4fps": 0.62, "n": 40, "backend": "dxgi_wc", "mode": "region"}
+{"shape": [1080, 1920, 3], "ms_median": 2.42, "ms_p95": 4.56, "cpu_pct_of_one_core_at_4fps": 7.03, "n": 40, "backend": "dxcam_dxgi", "mode": "full"}
+{"shape": [600, 800, 3], "ms_median": 1.23, "ms_p95": 6.26, "cpu_pct_of_one_core_at_4fps": 0.31, "n": 40, "backend": "dxcam_dxgi", "mode": "region"}
+  File "<venv>/Lib\site-packages\dxcam\core\winrt_duplicator.py", line 53, in load
+    raise ModuleNotFoundError(
+ModuleNotFoundError: WinRT backend requires optional dependencies. Install with `pip install "dxcam[winrt]"`.
+  File "<venv>/Lib\site-packages\dxcam\core\winrt_duplicator.py", line 53, in load
+    raise ModuleNotFoundError(
+ModuleNotFoundError: WinRT backend requires optional dependencies. Install with `pip install "dxcam[winrt]"`.
+{"frames_delivered_in_10s": 487, "cpu_pct_of_one_core_(callback does copy)": 22.08, "backend": "wgc_wc", "mode": "full"}
+{"frames_delivered_in_10s": 484, "cpu_pct_of_one_core_(callback does copy)": 15.28, "backend": "wgc_wc", "mode": "region"}
+{"frames_delivered_in_10s": 40, "cpu_pct_of_one_core_(callback does copy)": 4.11, "backend": "wgc_wc", "mode": "full", "min_update_interval": "250"}
+{"shape": [1080, 1920, 3], "ms_median": 3.91, "ms_p95": 7.85, "cpu_pct_of_one_core_at_4fps": 1.09, "n": 40, "backend": "dxcam_winrt", "mode": "full", "min_update_interval": null}
+{"shape": [600, 800, 3], "ms_median": 1.65, "ms_p95": 4.18, "cpu_pct_of_one_core_at_4fps": 0.62, "n": 40, "backend": "dxcam_winrt", "mode": "region", "min_update_interval": null}
+{"mss_full_saturated_fps": 50.6, "cpu_pct_of_one_core": 33.7}

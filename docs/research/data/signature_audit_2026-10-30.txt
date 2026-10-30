@@ -1,0 +1,8 @@
+total binaries: 58
+Valid: 43
+NotSigned: 15
+signed publishers:
+CN=The QT Company Oy x35
+CN=Microsoft Windows x8
+unsigned examples:
+libcrypto-3-x64.dll, libffi-8.dll, libssl-3-x64.dll, python3.dll, python312.dll, select.pyd, unicodedata.pyd, _bz2.pyd

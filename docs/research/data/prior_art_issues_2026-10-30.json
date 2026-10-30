@@ -1,0 +1,1774 @@
+{
+ "translumo": [
+  {
+   "n": 125,
+   "t": "Text detection is failed (EasyOCREngine) ",
+   "c": 7,
+   "u": "2026-07-19",
+   "cr": "2024-04-30"
+  },
+  {
+   "n": 93,
+   "t": "[feature request] user substituions / пользовательские замены ",
+   "c": 6,
+   "u": "2025-03-02",
+   "cr": "2024-01-18"
+  },
+  {
+   "n": 69,
+   "t": "translation timer",
+   "c": 6,
+   "u": "2023-12-24",
+   "cr": "2023-10-01"
+  },
+  {
+   "n": 21,
+   "t": "One shot translation and translation history",
+   "c": 6,
+   "u": "2024-05-10",
+   "cr": "2023-07-04"
+  },
+  {
+   "n": 7,
+   "t": "Font Appearance page crashes the app (ASUS GPU Tweak III OSD conflict)",
+   "c": 6,
+   "u": "2023-06-21",
+   "cr": "2023-06-19"
+  },
+  {
+   "n": 36,
+   "t": "Возможность задать область отображения переведенного текста.",
+   "c": 5,
+   "u": "2024-10-30",
+   "cr": "2023-08-20"
+  },
+  {
+   "n": 92,
+   "t": "Support for Local (Offline) Translation Engines",
+   "c": 4,
+   "u": "2025-06-21",
+   "cr": "2024-01-15"
+  },
+  {
+   "n": 234,
+   "t": "Translumo.Processing.Exceptions.TextDetectionException: Text detection failed",
+   "c": 3,
+   "u": "2025-09-26",
+   "cr": "2025-09-20"
+  },
+  {
+   "n": 70,
+   "t": "Right-to-Left Text Direction for Arabic",
+   "c": 3,
+   "u": "2023-10-01",
+   "cr": "2023-10-01"
+  },
+  {
+   "n": 20,
+   "t": "Can't select area on second monitor",
+   "c": 3,
+   "u": "2025-09-14",
+   "cr": "2023-07-04"
+  },
+  {
+   "n": 204,
+   "t": "Проблема захвата текста",
+   "c": 2,
+   "u": "2025-09-15",
+   "cr": "2025-04-19"
+  },
+  {
+   "n": 183,
+   "t": "Ollama local translation integration",
+   "c": 2,
+   "u": "2025-09-15",
+   "cr": "2025-02-07"
+  },
+  {
+   "n": 84,
+   "t": "Japanese and Chinese text problem",
+   "c": 2,
+   "u": "2024-01-14",
+   "cr": "2023-11-24"
+  },
+  {
+   "n": 31,
+   "t": "Больше зон перевода",
+   "c": 2,
+   "u": "2023-08-06",
+   "cr": "2023-07-26"
+  },
+  {
+   "n": 287,
+   "t": "German(Deutsch) recongition Engine wanted.",
+   "c": 1,
+   "u": "2026-08-13",
+   "cr": "2026-06-10"
+  },
+  {
+   "n": 273,
+   "t": "Не запускается Translumo 1.0.2",
+   "c": 1,
+   "u": "2026-04-17",
+   "cr": "2026-04-17"
+  },
+  {
+   "n": 269,
+   "t": "Character names in conversations",
+   "c": 1,
+   "u": "2026-03-02",
+   "cr": "2026-03-02"
+  },
+  {
+   "n": 263,
+   "t": "[Feature Request] Multi-Region Capture & Concurrent Translation Support",
+   "c": 1,
+   "u": "2026-04-14",
+   "cr": "2026-01-17"
+  },
+  {
+   "n": 249,
+   "t": "Translumo v1.0.2 - Синтез речи",
+   "c": 1,
+   "u": "2026-01-14",
+   "cr": "2025-12-08"
+  },
+  {
+   "n": 246,
+   "t": "Feature Request: Add RapidOCR (onnxruntime versions) as an OCR option?",
+   "c": 1,
+   "u": "2025-12-26",
+   "cr": "2025-11-24"
+  },
+  {
+   "n": 243,
+   "t": "1.0.2 версия не запускается",
+   "c": 1,
+   "u": "2025-11-14",
+   "cr": "2025-11-14"
+  },
+  {
+   "n": 240,
+   "t": "Нет возможности выделить область перевода на втором мниторе",
+   "c": 1,
+   "u": "2026-10-03",
+   "cr": "2025-10-27"
+  },
+  {
+   "n": 220,
+   "t": "Updating the DeepL api for languages like Thai or Vietnamese ?",
+   "c": 1,
+   "u": "2025-09-14",
+   "cr": "2025-08-31"
+  },
+  {
+   "n": 219,
+   "t": "Please add Uzbek for translation from another language.",
+   "c": 1,
+   "u": "2026-01-14",
+   "cr": "2025-08-30"
+  },
+  {
+   "n": 210,
+   "t": "Please ADD Ai engine translate",
+   "c": 1,
+   "u": "2025-09-27",
+   "cr": "2025-05-27"
+  },
+  {
+   "n": 151,
+   "t": "Copy text from the text window",
+   "c": 1,
+   "u": "2025-09-15",
+   "cr": "2024-09-09"
+  },
+  {
+   "n": 119,
+   "t": "Возможность делать скриншот экрана, перед выделением области перевода",
+   "c": 1,
+   "u": "2025-09-15",
+   "cr": "2024-04-13"
+  },
+  {
+   "n": 66,
+   "t": "[feature request] translate system audio playing and display subtitle OSD",
+   "c": 1,
+   "u": "2025-09-15",
+   "cr": "2023-09-29"
+  },
+  {
+   "n": 25,
+   "t": "Translate result and some feedback",
+   "c": 1,
+   "u": "2023-07-09",
+   "cr": "2023-07-08"
+  },
+  {
+   "n": 4,
+   "t": "Image preprocessing",
+   "c": 1,
+   "u": "2023-06-19",
+   "cr": "2023-06-18"
+  },
+  {
+   "n": 319,
+   "t": "Can't use with Meta Link (Fix included) Lone Echo",
+   "c": 0,
+   "u": "2026-10-29",
+   "cr": "2026-10-29"
+  },
+  {
+   "n": 318,
+   "t": "Translumo",
+   "c": 0,
+   "u": "2026-10-28",
+   "cr": "2026-10-26"
+  },
+  {
+   "n": 317,
+   "t": "По поводу Lookupper",
+   "c": 0,
+   "u": "2026-10-15",
+   "cr": "2026-10-15"
+  },
+  {
+   "n": 314,
+   "t": "Не запоминаются расположения окна перевода и области перевода при закрытии поограммы",
+   "c": 0,
+   "u": "2026-09-27",
+   "cr": "2026-09-27"
+  },
+  {
+   "n": 313,
+   "t": "Новая версия не позволяет захватывать английский без перевода.",
+   "c": 0,
+   "u": "2026-09-25",
+   "cr": "2026-09-25"
+  },
+  {
+   "n": 299,
+   "t": "Window Opacity slider stuck at 1% (Cant get 100% transparent window)",
+   "c": 0,
+   "u": "2026-08-11",
+   "cr": "2026-08-11"
+  },
+  {
+   "n": 297,
+   "t": "malayalam language is not available",
+   "c": 0,
+   "u": "2026-07-28",
+   "cr": "2026-07-28"
+  },
+  {
+   "n": 294,
+   "t": "Can not remove the file",
+   "c": 0,
+   "u": "2026-07-02",
+   "cr": "2026-07-02"
+  },
+  {
+   "n": 291,
+   "t": "Please add Traditional Chinese (Taiwan) to the source language.",
+   "c": 0,
+   "u": "2026-06-17",
+   "cr": "2026-06-17"
+  },
+  {
+   "n": 282,
+   "t": "Please add Bengali (bn) Language support",
+   "c": 0,
+   "u": "2026-06-01",
+   "cr": "2026-06-01"
+  },
+  {
+   "n": 281,
+   "t": "Language support request \"Bengali (bn)\"",
+   "c": 0,
+   "u": "2026-06-01",
+   "cr": "2026-06-01"
+  },
+  {
+   "n": 279,
+   "t": "Multi-monitor screen capture issues",
+   "c": 0,
+   "u": "2026-05-19",
+   "cr": "2026-05-19"
+  },
+  {
+   "n": 278,
+   "t": "Проблема с отображением перевода. В области перевода сообщения не находящиеся в этой области",
+   "c": 0,
+   "u": "2026-05-14",
+   "cr": "2026-05-14"
+  },
+  {
+   "n": 271,
+   "t": "How to change the voice in Tanslumo?",
+   "c": 0,
+   "u": "2026-04-08",
+   "cr": "2026-04-08"
+  },
+  {
+   "n": 270,
+   "t": "Не запоминается положение окна перевода",
+   "c": 0,
+   "u": "2026-03-17",
+   "cr": "2026-03-17"
+  },
+  {
+   "n": 268,
+   "t": "Feature Request: Scoop Support",
+   "c": 0,
+   "u": "2026-02-25",
+   "cr": "2026-02-25"
+  },
+  {
+   "n": 261,
+   "t": "How to properly remove the program and ocr models?",
+   "c": 0,
+   "u": "2026-01-11",
+   "cr": "2026-01-11"
+  },
+  {
+   "n": 260,
+   "t": "the app is malfunctioning",
+   "c": 0,
+   "u": "2026-01-09",
+   "cr": "2026-01-09"
+  },
+  {
+   "n": 256,
+   "t": "Save settings to a text file",
+   "c": 0,
+   "u": "2025-12-27",
+   "cr": "2025-12-27"
+  },
+  {
+   "n": 253,
+   "t": "Add french as Featured Recognition Language",
+   "c": 0,
+   "u": "2025-12-21",
+   "cr": "2025-12-21"
+  },
+  {
+   "n": 252,
+   "t": "need too add",
+   "c": 0,
+   "u": "2025-12-19",
+   "cr": "2025-12-19"
+  },
+  {
+   "n": 251,
+   "t": "RO -> RU",
+   "c": 0,
+   "u": "2025-12-10",
+   "cr": "2025-12-10"
+  },
+  {
+   "n": 248,
+   "t": "Нужна новая функция",
+   "c": 0,
+   "u": "2025-12-08",
+   "cr": "2025-12-08"
+  },
+  {
+   "n": 245,
+   "t": "Nothing happened, I read the issue with the questions, but restarting or reinstalling didn't help.",
+   "c": 0,
+   "u": "2025-11-20",
+   "cr": "2025-11-20"
+  },
+  {
+   "n": 239,
+   "t": "Feature Request: Add Hebrew (he) as an available Target Language",
+   "c": 0,
+   "u": "2025-10-19",
+   "cr": "2025-10-19"
+  },
+  {
+   "n": 232,
+   "t": "\"Виртуальные рабочие столы\" (Virtual Desktops). Windows 10.",
+   "c": 0,
+   "u": "2025-09-16",
+   "cr": "2025-09-16"
+  },
+  {
+   "n": 231,
+   "t": "Пропуск хоткиев в винду/программы исключения.",
+   "c": 0,
+   "u": "2025-09-16",
+   "cr": "2025-09-16"
+  },
+  {
+   "n": 230,
+   "t": "Остановка текушего потока речи по хоткею",
+   "c": 0,
+   "u": "2025-09-16",
+   "cr": "2025-09-16"
+  },
+  {
+   "n": 205,
+   "t": "Add an option to use local Python and Pytorch",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2025-05-02"
+  },
+  {
+   "n": 199,
+   "t": "Add an option to copy the translation on the clipboard",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2025-04-01"
+  },
+  {
+   "n": 159,
+   "t": "Не переводит DOS игры",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-10-29"
+  },
+  {
+   "n": 142,
+   "t": "He just doesn't see the text.",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-08-03"
+  },
+  {
+   "n": 140,
+   "t": "[feature] hotkey translation update",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-07-19"
+  },
+  {
+   "n": 137,
+   "t": "[Feature Request] Multiple Screen Capture Areas",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-06-28"
+  },
+  {
+   "n": 114,
+   "t": "Feature Request - Translate Japanese > English and Romaji or Hiragana",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-03-25"
+  },
+  {
+   "n": 110,
+   "t": "Бесконечная загрузка | Endless load",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-03-10"
+  },
+  {
+   "n": 106,
+   "t": "can i duplicate this exe ",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-02-29"
+  },
+  {
+   "n": 105,
+   "t": "Возможность одновременного выбора нескольких переводчиков",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-02-26"
+  },
+  {
+   "n": 104,
+   "t": "После выхода из спящего режима перестают показываться настройки",
+   "c": 0,
+   "u": "2025-09-15",
+   "cr": "2024-02-26"
+  },
+  {
+   "n": 63,
+   "t": "Запоминание положения",
+   "c": 0,
+   "u": "2023-10-02",
+   "cr": "2023-09-25"
+  },
+  {
+   "n": 59,
+   "t": "автопоявление и скрытие окна перевода",
+   "c": 0,
+   "u": "2023-09-22",
+   "cr": "2023-09-11"
+  }
+ ],
+ "luna": [
+  {
+   "n": 1446,
+   "t": "[REQUEST] PSVita: Prince of Stride",
+   "c": 6,
+   "u": "2026-08-24",
+   "cr": "2025-03-03"
+  },
+  {
+   "n": 1445,
+   "t": "[REQUEST] PSVita: BAD APPLE WARS",
+   "c": 4,
+   "u": "2025-12-29",
+   "cr": "2025-03-03"
+  },
+  {
+   "n": 2006,
+   "t": "PSV RearPheles –Red of Another– 识别不到文本",
+   "c": 3,
+   "u": "2025-12-29",
+   "cr": "2025-11-18"
+  },
+  {
+   "n": 1649,
+   "t": "[NS]五等分的花嫁~与她许下的五个约定",
+   "c": 3,
+   "u": "2025-12-29",
+   "cr": "2025-05-20"
+  },
+  {
+   "n": 2127,
+   "t": "PSV Storm Lover V(PCSG00735)",
+   "c": 2,
+   "u": "2026-02-02",
+   "cr": "2026-02-02"
+  },
+  {
+   "n": 2300,
+   "t": "ロウきゅーぶ！ ないしょのシャッターチャンス",
+   "c": 1,
+   "u": "2026-05-16",
+   "cr": "2026-05-15"
+  },
+  {
+   "n": 2254,
+   "t": "Tlicolity Eyes -twinkle showtime- (Nintendo Switch) Emulator Support Request",
+   "c": 1,
+   "u": "2026-05-07",
+   "cr": "2026-04-28"
+  },
+  {
+   "n": 1828,
+   "t": "おそ松さん THE GAME はちゃめちゃ就職アドバイス -デッド オア ワーク-",
+   "c": 1,
+   "u": "2025-12-29",
+   "cr": "2025-08-03"
+  },
+  {
+   "n": 1568,
+   "t": "Hiyoku no Tori",
+   "c": 1,
+   "u": "2026-09-16",
+   "cr": "2025-04-17"
+  },
+  {
+   "n": 1529,
+   "t": "老大 persona 和 persona2无法hook到文本 求助一下TT 用的是ppsspp",
+   "c": 1,
+   "u": "2025-12-29",
+   "cr": "2025-03-30"
+  },
+  {
+   "n": 1520,
+   "t": "[SWITCH] B-PROJECT - Ryuusei * Fantasia",
+   "c": 1,
+   "u": "2025-12-29",
+   "cr": "2025-03-25"
+  },
+  {
+   "n": 2625,
+   "t": "未能适配 switch游戏探偵・癸生川凌介事件譚系列游戏（用的eden模拟器）",
+   "c": 0,
+   "u": "2026-10-28",
+   "cr": "2026-10-25"
+  },
+  {
+   "n": 2611,
+   "t": "SLPM-66913 ひぐらしのなく頃に祭 カケラ遊び",
+   "c": 0,
+   "u": "2026-10-18",
+   "cr": "2026-10-16"
+  },
+  {
+   "n": 2603,
+   "t": "大模型接口支持「Sign in with ChatGPT」",
+   "c": 0,
+   "u": "2026-10-13",
+   "cr": "2026-10-13"
+  },
+  {
+   "n": 2590,
+   "t": "PCSG00668 BAD APPLE WARS（更新ver.）",
+   "c": 0,
+   "u": "2026-10-11",
+   "cr": "2026-10-10"
+  },
+  {
+   "n": 2589,
+   "t": "PCSG00366 花咲くまにまに（更新ver.）",
+   "c": 0,
+   "u": "2026-10-11",
+   "cr": "2026-10-10"
+  },
+  {
+   "n": 2588,
+   "t": "PCSG01070 ハイリゲンシュタットの歌",
+   "c": 0,
+   "u": "2026-10-11",
+   "cr": "2026-10-10"
+  },
+  {
+   "n": 2551,
+   "t": "Storm lover 2nd V (PSVITA)",
+   "c": 0,
+   "u": "2026-09-26",
+   "cr": "2026-09-26"
+  },
+  {
+   "n": 2525,
+   "t": "フォルティッシモ",
+   "c": 0,
+   "u": "2026-09-09",
+   "cr": "2026-09-09"
+  },
+  {
+   "n": 2478,
+   "t": "ゆのはなSpRING！",
+   "c": 0,
+   "u": "2026-08-15",
+   "cr": "2026-08-15"
+  },
+  {
+   "n": 2437,
+   "t": "花咲くまにまに",
+   "c": 0,
+   "u": "2026-07-24",
+   "cr": "2026-07-24"
+  },
+  {
+   "n": 2425,
+   "t": "つくものがたり",
+   "c": 0,
+   "u": "2026-07-20",
+   "cr": "2026-07-20"
+  },
+  {
+   "n": 2424,
+   "t": "Bullet Butlers -銃弾の彼方- ULJM05941 psp",
+   "c": 0,
+   "u": "2026-07-20",
+   "cr": "2026-07-20"
+  },
+  {
+   "n": 2412,
+   "t": "カエル畑DEつかまえて☆彡",
+   "c": 0,
+   "u": "2026-07-18",
+   "cr": "2026-07-15"
+  },
+  {
+   "n": 2351,
+   "t": "NPJH50508 ロウきゅーぶ！",
+   "c": 0,
+   "u": "2026-06-09",
+   "cr": "2026-06-08"
+  },
+  {
+   "n": 2323,
+   "t": "GUISARD + GUISARD SHUFFLE PC Hook",
+   "c": 0,
+   "u": "2026-05-27",
+   "cr": "2026-05-27"
+  },
+  {
+   "n": 2299,
+   "t": "Hayate no Gotoku!! Nightmare Paradise",
+   "c": 0,
+   "u": "2026-05-15",
+   "cr": "2026-05-15"
+  },
+  {
+   "n": 2238,
+   "t": "滄海天記",
+   "c": 0,
+   "u": "2026-04-25",
+   "cr": "2026-04-24"
+  },
+  {
+   "n": 2193,
+   "t": "Koi wa Rule ni Shibaranenai",
+   "c": 0,
+   "u": "2026-03-26",
+   "cr": "2026-03-25"
+  },
+  {
+   "n": 2176,
+   "t": "[ULJS00570] STORM LOVER 2nd（初回生産版）",
+   "c": 0,
+   "u": "2026-03-17",
+   "cr": "2026-03-17"
+  },
+  {
+   "n": 2175,
+   "t": "[ULJS00396] STORM LOVER 夏恋!!",
+   "c": 0,
+   "u": "2026-03-17",
+   "cr": "2026-03-17"
+  },
+  {
+   "n": 2174,
+   "t": "[ULJS00504] STORM LOVER 快!!（初回生産版）",
+   "c": 0,
+   "u": "2026-03-17",
+   "cr": "2026-03-17"
+  },
+  {
+   "n": 2166,
+   "t": "[PCSG01048]TOKYOヤマノテBOYS for V MAIN DISC",
+   "c": 0,
+   "u": "2026-03-14",
+   "cr": "2026-03-13"
+  },
+  {
+   "n": 2157,
+   "t": "PSV游戏极强音请求适配",
+   "c": 0,
+   "u": "2026-03-14",
+   "cr": "2026-03-07"
+  },
+  {
+   "n": 2138,
+   "t": "【PSV】TOKYOヤマノテBOYS for V MAIN DISC (PCSG01048)",
+   "c": 0,
+   "u": "2026-02-12",
+   "cr": "2026-02-11"
+  },
+  {
+   "n": 2046,
+   "t": "Musketeer: Le Sang des Chevaliers",
+   "c": 0,
+   "u": "2025-12-29",
+   "cr": "2025-12-06"
+  },
+  {
+   "n": 2007,
+   "t": "PSV 帝国海軍恋慕情 ~明治横須賀行進曲~",
+   "c": 0,
+   "u": "2025-12-29",
+   "cr": "2025-11-18"
+  },
+  {
+   "n": 1979,
+   "t": "【PSP】維新恋華 龍馬外伝",
+   "c": 0,
+   "u": "2025-12-29",
+   "cr": "2025-10-30"
+  },
+  {
+   "n": 1923,
+   "t": "PSV游戏VitaminX（PCSG01115）HOOK提取不到游戏文本，麻烦大佬帮忙测试，非常感谢您",
+   "c": 0,
+   "u": "2025-12-29",
+   "cr": "2025-09-22"
+  },
+  {
+   "n": 1637,
+   "t": "ULJM05028 実話怪談 新耳袋",
+   "c": 0,
+   "u": "2025-12-29",
+   "cr": "2025-05-17"
+  },
+  {
+   "n": 1614,
+   "t": "请求收录一些比较好的Prompt词（放在一个文件夹里自行取用）",
+   "c": 0,
+   "u": "2025-05-11",
+   "cr": "2025-05-11"
+  },
+  {
+   "n": 1542,
+   "t": "[PCSG00539] psvビリ一バ一!",
+   "c": 0,
+   "u": "2025-12-29",
+   "cr": "2025-04-02"
+  }
+ ],
+ "screentranslator": [
+  {
+   "n": 5,
+   "t": "Recognition/translation issues",
+   "c": 18,
+   "u": "2024-04-01",
+   "cr": "2019-04-10"
+  },
+  {
+   "n": 109,
+   "t": "Переводчик не отвечает",
+   "c": 13,
+   "u": "2022-08-24",
+   "cr": "2022-08-05"
+  },
+  {
+   "n": 133,
+   "t": "Translation of the software into Hebrew",
+   "c": 12,
+   "u": "2023-01-03",
+   "cr": "2022-12-20"
+  },
+  {
+   "n": 164,
+   "t": "DeepL всё ещё в не рабочем состоянии",
+   "c": 10,
+   "u": "2024-02-05",
+   "cr": "2023-09-09"
+  },
+  {
+   "n": 182,
+   "t": "The app misses dll files and fails to download from raw.githubusercontent.com",
+   "c": 8,
+   "u": "2026-01-28",
+   "cr": "2024-03-15"
+  },
+  {
+   "n": 185,
+   "t": "For manga readers...",
+   "c": 7,
+   "u": "2025-02-11",
+   "cr": "2024-05-05"
+  },
+  {
+   "n": 179,
+   "t": "help please ",
+   "c": 6,
+   "u": "2024-03-20",
+   "cr": "2024-02-17"
+  },
+  {
+   "n": 152,
+   "t": "black screen problem",
+   "c": 6,
+   "u": "2023-09-03",
+   "cr": "2023-05-01"
+  },
+  {
+   "n": 98,
+   "t": "I can't update and setting ScreenTranslator",
+   "c": 6,
+   "u": "2023-05-19",
+   "cr": "2022-05-02"
+  },
+  {
+   "n": 199,
+   "t": "i want to watch manga but",
+   "c": 5,
+   "u": "2025-12-30",
+   "cr": "2025-11-17"
+  },
+  {
+   "n": 180,
+   "t": "Translators not working.",
+   "c": 5,
+   "u": "2024-12-15",
+   "cr": "2024-03-04"
+  },
+  {
+   "n": 153,
+   "t": "Thank you",
+   "c": 5,
+   "u": "2023-05-26",
+   "cr": "2023-05-07"
+  },
+  {
+   "n": 137,
+   "t": "Prevents Windows 7 Shutdown",
+   "c": 5,
+   "u": "2024-06-21",
+   "cr": "2023-01-25"
+  },
+  {
+   "n": 193,
+   "t": "What am I missing? Default Language and Updates",
+   "c": 4,
+   "u": "2025-08-21",
+   "cr": "2025-03-04"
+  },
+  {
+   "n": 170,
+   "t": "I can't run program (error)",
+   "c": 4,
+   "u": "2023-11-07",
+   "cr": "2023-11-05"
+  },
+  {
+   "n": 124,
+   "t": "Can't run application in Gnome Wayland",
+   "c": 4,
+   "u": "2022-12-19",
+   "cr": "2022-10-16"
+  },
+  {
+   "n": 101,
+   "t": "Hotkey only for capture to clipboard",
+   "c": 4,
+   "u": "2022-06-01",
+   "cr": "2022-05-31"
+  },
+  {
+   "n": 198,
+   "t": "Project Upgrade Plan: Qt 6 Migration, Performance Optimization & Security Updates",
+   "c": 3,
+   "u": "2026-09-05",
+   "cr": "2025-10-06"
+  },
+  {
+   "n": 183,
+   "t": "ChatGPT integration",
+   "c": 3,
+   "u": "2025-02-11",
+   "cr": "2024-04-22"
+  },
+  {
+   "n": 157,
+   "t": "Japanese vertical text recognition broken",
+   "c": 3,
+   "u": "2023-07-17",
+   "cr": "2023-07-11"
+  },
+  {
+   "n": 156,
+   "t": " ScreenTranslator + Gpt 3.5",
+   "c": 3,
+   "u": "2025-01-05",
+   "cr": "2023-05-23"
+  },
+  {
+   "n": 154,
+   "t": "In the right panel, expand the recognizers and translators sections",
+   "c": 3,
+   "u": "2023-07-25",
+   "cr": "2023-05-10"
+  },
+  {
+   "n": 134,
+   "t": "Вместо русского переводит иногда на английский",
+   "c": 3,
+   "u": "2023-01-04",
+   "cr": "2022-12-24"
+  },
+  {
+   "n": 122,
+   "t": "Option to automatically capture raw OCR text into clipboard",
+   "c": 3,
+   "u": "2022-10-09",
+   "cr": "2022-10-07"
+  },
+  {
+   "n": 72,
+   "t": "Add detection for vertical/horizontal orientation of a same language",
+   "c": 3,
+   "u": "2021-12-20",
+   "cr": "2021-12-01"
+  },
+  {
+   "n": 69,
+   "t": "Возможность перевести текст одной строкой",
+   "c": 3,
+   "u": "2022-06-09",
+   "cr": "2021-10-14"
+  },
+  {
+   "n": 59,
+   "t": "Add support for full-screen applications",
+   "c": 3,
+   "u": "2022-06-29",
+   "cr": "2021-07-12"
+  },
+  {
+   "n": 208,
+   "t": "Update for Google Translate",
+   "c": 2,
+   "u": "2026-10-06",
+   "cr": "2026-09-03"
+  },
+  {
+   "n": 181,
+   "t": "New efficient features",
+   "c": 2,
+   "u": "2024-03-16",
+   "cr": "2024-03-14"
+  },
+  {
+   "n": 148,
+   "t": "in debian nothing appears after first set-ups updating recognizer, translators and rest",
+   "c": 2,
+   "u": "2023-08-03",
+   "cr": "2023-04-08"
+  },
+  {
+   "n": 144,
+   "t": "Very long wait for translation from English to Russian...",
+   "c": 2,
+   "u": "2023-03-27",
+   "cr": "2023-02-23"
+  },
+  {
+   "n": 138,
+   "t": "error with all traductor, not possible trad ",
+   "c": 2,
+   "u": "2023-02-06",
+   "cr": "2023-02-01"
+  },
+  {
+   "n": 136,
+   "t": "Copy only the translation of the text without the original",
+   "c": 2,
+   "u": "2023-01-11",
+   "cr": "2023-01-09"
+  },
+  {
+   "n": 113,
+   "t": "Wrong letter recognition \"I\"",
+   "c": 2,
+   "u": "2022-09-08",
+   "cr": "2022-08-27"
+  },
+  {
+   "n": 53,
+   "t": "Kanji dictionary integration to translator",
+   "c": 2,
+   "u": "2021-07-11",
+   "cr": "2021-05-18"
+  },
+  {
+   "n": 209,
+   "t": "CORS policy: No 'Access-Control-Allow-Origin",
+   "c": 1,
+   "u": "2026-09-28",
+   "cr": "2026-09-24"
+  },
+  {
+   "n": 205,
+   "t": "how can i fix this",
+   "c": 1,
+   "u": "2026-08-22",
+   "cr": "2026-08-21"
+  },
+  {
+   "n": 201,
+   "t": "failed to init OCR engine: init failed",
+   "c": 1,
+   "u": "2026-04-28",
+   "cr": "2026-04-22"
+  },
+  {
+   "n": 196,
+   "t": "argos support?",
+   "c": 1,
+   "u": "2025-07-17",
+   "cr": "2025-07-16"
+  },
+  {
+   "n": 186,
+   "t": "Application not running in windows 7",
+   "c": 1,
+   "u": "2024-06-25",
+   "cr": "2024-06-20"
+  },
+  {
+   "n": 184,
+   "t": "Replace text in capture",
+   "c": 1,
+   "u": "2024-04-28",
+   "cr": "2024-04-27"
+  },
+  {
+   "n": 175,
+   "t": "Very good app, but please add the option to show romaji aswell above the translation for JP.",
+   "c": 1,
+   "u": "2023-12-09",
+   "cr": "2023-12-07"
+  },
+  {
+   "n": 174,
+   "t": "Translation doesnt show up but the cpatured text does",
+   "c": 1,
+   "u": "2023-11-25",
+   "cr": "2023-11-22"
+  },
+  {
+   "n": 167,
+   "t": "Use the Capture Shot show the last captured screen",
+   "c": 1,
+   "u": "2023-10-16",
+   "cr": "2023-10-14"
+  },
+  {
+   "n": 166,
+   "t": "can't use the tool while in game.",
+   "c": 1,
+   "u": "2023-10-02",
+   "cr": "2023-09-29"
+  },
+  {
+   "n": 163,
+   "t": "Not sure if this is a bug but it is not translating Russian to english for me. The letters are just jumbled up nonsense. ",
+   "c": 1,
+   "u": "2023-09-02",
+   "cr": "2023-08-24"
+  },
+  {
+   "n": 159,
+   "t": "Error when translating, does not automatically display the table",
+   "c": 1,
+   "u": "2023-07-25",
+   "cr": "2023-07-21"
+  },
+  {
+   "n": 151,
+   "t": "use the official baidu fanyi api to translate.Main Code is done.",
+   "c": 1,
+   "u": "2023-04-27",
+   "cr": "2023-04-26"
+  },
+  {
+   "n": 149,
+   "t": "Постоянная капча Яндекс",
+   "c": 1,
+   "u": "2023-04-08",
+   "cr": "2023-04-08"
+  },
+  {
+   "n": 145,
+   "t": "Accurate Translate",
+   "c": 1,
+   "u": "2023-02-24",
+   "cr": "2023-02-23"
+  },
+  {
+   "n": 142,
+   "t": "Dehyphenization(?)",
+   "c": 1,
+   "u": "2023-02-14",
+   "cr": "2023-02-14"
+  },
+  {
+   "n": 141,
+   "t": "Autostart does not work on Linux",
+   "c": 1,
+   "u": "2023-02-12",
+   "cr": "2023-02-12"
+  },
+  {
+   "n": 131,
+   "t": "Hotkeys for changing the default langauge",
+   "c": 1,
+   "u": "2022-12-16",
+   "cr": "2022-12-14"
+  },
+  {
+   "n": 129,
+   "t": "Creation of the API",
+   "c": 1,
+   "u": "2022-12-01",
+   "cr": "2022-11-28"
+  },
+  {
+   "n": 128,
+   "t": "Join lines for translation",
+   "c": 1,
+   "u": "2023-02-11",
+   "cr": "2022-11-22"
+  },
+  {
+   "n": 125,
+   "t": "I cannot download recognizers for English. it notes that empty data unpacked",
+   "c": 1,
+   "u": "2022-10-23",
+   "cr": "2022-10-22"
+  },
+  {
+   "n": 112,
+   "t": "Save to Clipboard Only for Translated Text",
+   "c": 1,
+   "u": "2022-08-24",
+   "cr": "2022-08-24"
+  },
+  {
+   "n": 108,
+   "t": "Translation beyond the screen",
+   "c": 1,
+   "u": "2022-07-28",
+   "cr": "2022-07-27"
+  },
+  {
+   "n": 100,
+   "t": "AppImage Hub release",
+   "c": 1,
+   "u": "2022-05-31",
+   "cr": "2022-05-31"
+  },
+  {
+   "n": 83,
+   "t": "Автоматический перевод текста на экране",
+   "c": 1,
+   "u": "2022-02-03",
+   "cr": "2022-02-03"
+  },
+  {
+   "n": 70,
+   "t": "Add auto language detection",
+   "c": 1,
+   "u": "2021-11-02",
+   "cr": "2021-10-30"
+  },
+  {
+   "n": 43,
+   "t": "Text to Speech for the untranslated text",
+   "c": 1,
+   "u": "2021-03-13",
+   "cr": "2021-03-12"
+  },
+  {
+   "n": 203,
+   "t": "Guide: Local LLM translation using Ollama",
+   "c": 0,
+   "u": "2026-06-20",
+   "cr": "2026-06-20"
+  }
+ ],
+ "powertoys_textextractor": [
+  {
+   "n": 21676,
+   "t": "tex extractor not working on second screen",
+   "c": 31,
+   "u": "2025-06-26",
+   "cr": "2022-11-03"
+  },
+  {
+   "n": 33242,
+   "t": "Text Extractor not working",
+   "c": 12,
+   "u": "2026-09-08",
+   "cr": "2024-06-05"
+  },
+  {
+   "n": 31992,
+   "t": "Text extractor moving screen contents",
+   "c": 12,
+   "u": "2024-11-20",
+   "cr": "2024-03-19"
+  },
+  {
+   "n": 25336,
+   "t": "[Text Extractor] Memory over consumption ",
+   "c": 12,
+   "u": "2023-11-14",
+   "cr": "2023-04-08"
+  },
+  {
+   "n": 20305,
+   "t": "Text Extractor to provide user feedback that action has been done",
+   "c": 12,
+   "u": "2025-03-03",
+   "cr": "2022-09-06"
+  },
+  {
+   "n": 40052,
+   "t": "Sudden bugreport",
+   "c": 8,
+   "u": "2026-04-18",
+   "cr": "2025-06-15"
+  },
+  {
+   "n": 29331,
+   "t": "text extractor add preferred language option to use your selected input language",
+   "c": 7,
+   "u": "2024-10-10",
+   "cr": "2023-10-20"
+  },
+  {
+   "n": 34353,
+   "t": "Text Extractor random crashes",
+   "c": 6,
+   "u": "2024-10-13",
+   "cr": "2024-08-19"
+  },
+  {
+   "n": 50075,
+   "t": "Preferred language of Text Extractor not remembered",
+   "c": 5,
+   "u": "2026-08-24",
+   "cr": "2026-08-23"
+  },
+  {
+   "n": 41208,
+   "t": "Text Extractor OCR doesn't recognise string of digits and commas",
+   "c": 5,
+   "u": "2026-04-18",
+   "cr": "2025-08-17"
+  },
+  {
+   "n": 28864,
+   "t": "Request for option to set Text Extractor default - single line",
+   "c": 5,
+   "u": "2024-10-10",
+   "cr": "2023-09-28"
+  },
+  {
+   "n": 22098,
+   "t": "Get space / tab data out when OCR is executed",
+   "c": 5,
+   "u": "2024-10-10",
+   "cr": "2022-11-15"
+  },
+  {
+   "n": 39847,
+   "t": "“文本提取器”顶部的悬浮窗口需要能够拖动",
+   "c": 4,
+   "u": "2025-06-07",
+   "cr": "2025-06-02"
+  },
+  {
+   "n": 36949,
+   "t": "Not able to copy certain info",
+   "c": 4,
+   "u": "2025-01-28",
+   "cr": "2025-01-18"
+  },
+  {
+   "n": 35614,
+   "t": "Strange empty desktop overlay with TextExtractor active",
+   "c": 4,
+   "u": "2026-04-18",
+   "cr": "2024-10-27"
+  },
+  {
+   "n": 28878,
+   "t": "Text Extractor - Use the most recent language used for extracting text for the next Text Extractor session",
+   "c": 4,
+   "u": "2026-04-20",
+   "cr": "2023-09-28"
+  },
+  {
+   "n": 22547,
+   "t": "Manage Text Extractor languages via Powertoys settings",
+   "c": 4,
+   "u": "2025-10-05",
+   "cr": "2022-12-07"
+  },
+  {
+   "n": 45048,
+   "t": "screenshot issues",
+   "c": 3,
+   "u": "2026-04-18",
+   "cr": "2026-01-25"
+  },
+  {
+   "n": 41679,
+   "t": "Извлекатель текста не работает",
+   "c": 3,
+   "u": "2026-04-18",
+   "cr": "2025-09-07"
+  },
+  {
+   "n": 33089,
+   "t": "Scroll language switch for Text Extractor",
+   "c": 3,
+   "u": "2025-05-08",
+   "cr": "2024-05-26"
+  },
+  {
+   "n": 20622,
+   "t": "[Text Extractor] Text popup windows disappear on activating Text Extractor",
+   "c": 3,
+   "u": "2024-11-04",
+   "cr": "2022-09-16"
+  },
+  {
+   "n": 50065,
+   "t": "Text extracter unable to copy deg symbol (°)",
+   "c": 2,
+   "u": "2026-08-22",
+   "cr": "2026-08-22"
+  },
+  {
+   "n": 47124,
+   "t": "Add Text Extractor to Context Menu",
+   "c": 2,
+   "u": "2026-08-05",
+   "cr": "2026-04-21"
+  },
+  {
+   "n": 45034,
+   "t": "When trying to extract text from a windows update standalone installer it brings up snipping tool not text extractor",
+   "c": 2,
+   "u": "2026-04-18",
+   "cr": "2026-01-24"
+  },
+  {
+   "n": 44914,
+   "t": "[bug] TextExtractor: cleared shortcut still causes system conflict",
+   "c": 2,
+   "u": "2026-06-10",
+   "cr": "2026-01-21"
+  },
+  {
+   "n": 40139,
+   "t": "Text extractor not working (black screen)",
+   "c": 2,
+   "u": "2026-04-18",
+   "cr": "2025-06-19"
+  },
+  {
+   "n": 36562,
+   "t": "Modules get disabled",
+   "c": 2,
+   "u": "2026-04-18",
+   "cr": "2024-12-25"
+  },
+  {
+   "n": 35845,
+   "t": "Words are inverted in text extractor when I extract",
+   "c": 2,
+   "u": "2024-11-09",
+   "cr": "2024-11-08"
+  },
+  {
+   "n": 34060,
+   "t": "Text Extractor Problems With Addresses",
+   "c": 2,
+   "u": "2024-10-23",
+   "cr": "2024-07-30"
+  },
+  {
+   "n": 32830,
+   "t": "Text extraction: Active area of language selector is smaller than it seems",
+   "c": 2,
+   "u": "2026-04-18",
+   "cr": "2024-05-12"
+  },
+  {
+   "n": 31394,
+   "t": "full-width Japanese characters ",
+   "c": 2,
+   "u": "2024-03-06",
+   "cr": "2024-02-12"
+  },
+  {
+   "n": 51667,
+   "t": "does it allowed to do reverse engineering and extract the oneOCR model from windows and then integrate it to my application that will used by my single client to convert pdfs to word files",
+   "c": 1,
+   "u": "2026-10-30",
+   "cr": "2026-10-28"
+  },
+  {
+   "n": 51313,
+   "t": "Text Extractor, please remember \"format results as table\"",
+   "c": 1,
+   "u": "2026-10-15",
+   "cr": "2026-10-15"
+  },
+  {
+   "n": 49903,
+   "t": "[Text Extractor] Add a headless OCR CLI",
+   "c": 1,
+   "u": "2026-08-14",
+   "cr": "2026-08-14"
+  },
+  {
+   "n": 48785,
+   "t": "Text Extractor does not launch when using custom shortcut (Win + Shift + Q)",
+   "c": 1,
+   "u": "2026-06-22",
+   "cr": "2026-06-22"
+  },
+  {
+   "n": 44069,
+   "t": "Text Extractor works depending on the type of window that has focus",
+   "c": 2,
+   "u": "2026-04-18",
+   "cr": "2025-12-04"
+  },
+  {
+   "n": 41509,
+   "t": "When the \"Text Extractor\" is used for the recognition process, it is desired that a window displaying the recognition results can be popped up.",
+   "c": 1,
+   "u": "2026-04-16",
+   "cr": "2025-08-31"
+  },
+  {
+   "n": 40574,
+   "t": "[Text extractor] Add support for markdown",
+   "c": 1,
+   "u": "2025-10-12",
+   "cr": "2025-07-12"
+  },
+  {
+   "n": 38853,
+   "t": "text extractor dont works",
+   "c": 1,
+   "u": "2026-04-18",
+   "cr": "2025-04-14"
+  },
+  {
+   "n": 38686,
+   "t": "Not proper captured the img text. after the past of the text they will not be correct.",
+   "c": 1,
+   "u": "2026-04-18",
+   "cr": "2025-04-09"
+  },
+  {
+   "n": 36555,
+   "t": "استخلاص    النصوص في اللغة العربية",
+   "c": 1,
+   "u": "2026-04-18",
+   "cr": "2024-12-24"
+  },
+  {
+   "n": 35957,
+   "t": "Bug Report: Text Extractor Clipboard Issue in PowerToys",
+   "c": 1,
+   "u": "2026-04-18",
+   "cr": "2024-11-15"
+  },
+  {
+   "n": 35545,
+   "t": "Fancy Zones: Move newly created windows to the current active monitor (Experimental) - Text Extractor.",
+   "c": 1,
+   "u": "2026-06-05",
+   "cr": "2024-10-23"
+  },
+  {
+   "n": 35375,
+   "t": "TEXT EXTRACTOR OCR NOT WORKING",
+   "c": 1,
+   "u": "2026-04-18",
+   "cr": "2024-10-10"
+  },
+  {
+   "n": 34949,
+   "t": "Can't extract text from Snip and Sketch screengrab",
+   "c": 1,
+   "u": "2024-10-13",
+   "cr": "2024-09-18"
+  },
+  {
+   "n": 29425,
+   "t": "word finder via OCR / Image",
+   "c": 1,
+   "u": "2024-10-10",
+   "cr": "2023-10-26"
+  },
+  {
+   "n": 28795,
+   "t": "[Text Extractor] Menu bar mode button improvement",
+   "c": 1,
+   "u": "2024-10-10",
+   "cr": "2023-09-27"
+  },
+  {
+   "n": 28793,
+   "t": "[Text Extractor] Question: Is it expected to show the bar on all monitors?",
+   "c": 1,
+   "u": "2024-10-10",
+   "cr": "2023-09-27"
+  },
+  {
+   "n": 28792,
+   "t": "[Text Extractor] Table mode not keeps table layout",
+   "c": 1,
+   "u": "2026-04-19",
+   "cr": "2023-09-27"
+  },
+  {
+   "n": 23832,
+   "t": "Allow text extractor to work with keyboard-only setups",
+   "c": 1,
+   "u": "2024-10-13",
+   "cr": "2023-02-03"
+  },
+  {
+   "n": 20968,
+   "t": "ocr in chinese languages adapt issue",
+   "c": 1,
+   "u": "2026-04-16",
+   "cr": "2022-10-02"
+  },
+  {
+   "n": 20330,
+   "t": "Text Extractor not working when Windows Magnifier is active",
+   "c": 1,
+   "u": "2023-04-07",
+   "cr": "2022-09-07"
+  },
+  {
+   "n": 20302,
+   "t": "Cursor not visible on whitish/greyish paper like background",
+   "c": 1,
+   "u": "2026-04-18",
+   "cr": "2022-09-06"
+  },
+  {
+   "n": 51477,
+   "t": "TextExtractor",
+   "c": 0,
+   "u": "2026-10-23",
+   "cr": "2026-10-22"
+  },
+  {
+   "n": 49811,
+   "t": "UITests - Text Extractor Migration",
+   "c": 0,
+   "u": "2026-08-10",
+   "cr": "2026-08-10"
+  },
+  {
+   "n": 48974,
+   "t": "Flickering when selecting 'Ignore Conflicts' in PowerToys Shortcut Conflicts page",
+   "c": 0,
+   "u": "2026-06-28",
+   "cr": "2026-06-28"
+  },
+  {
+   "n": 48229,
+   "t": "Ukrainian OCR Language Support for PowerToys Text Extractor",
+   "c": 0,
+   "u": "2026-05-31",
+   "cr": "2026-05-31"
+  },
+  {
+   "n": 48184,
+   "t": "PowerToys Profile Triggers (Automated Feature Toggling)",
+   "c": 0,
+   "u": "2026-10-12",
+   "cr": "2026-05-28"
+  },
+  {
+   "n": 47465,
+   "t": "出现的种问题",
+   "c": 0,
+   "u": "2026-04-30",
+   "cr": "2026-04-30"
+  },
+  {
+   "n": 47087,
+   "t": "Customizable cursor icon for Text Extractor",
+   "c": 0,
+   "u": "2026-04-19",
+   "cr": "2026-04-18"
+  },
+  {
+   "n": 43839,
+   "t": "希望添加的功能",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2025-11-24"
+  },
+  {
+   "n": 42080,
+   "t": "Recognize Text from screenshot that exists in Clipboard",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2025-09-29"
+  },
+  {
+   "n": 41969,
+   "t": "No possible OCR languages are installed",
+   "c": 0,
+   "u": "2026-04-18",
+   "cr": "2025-09-24"
+  },
+  {
+   "n": 41765,
+   "t": "skrót Windows +Szift+T",
+   "c": 0,
+   "u": "2026-04-18",
+   "cr": "2025-09-11"
+  },
+  {
+   "n": 40612,
+   "t": "OCR Area of oportunity",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2025-07-15"
+  },
+  {
+   "n": 39833,
+   "t": "Reporting Recognition Errors by Text Extractor",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2025-05-31"
+  },
+  {
+   "n": 38698,
+   "t": "Select text from anywhere like android",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2025-04-09"
+  },
+  {
+   "n": 37609,
+   "t": "Text extractor not recognizing simplified Chinese when written vertically",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2025-02-24"
+  },
+  {
+   "n": 36916,
+   "t": "Text extractor - Handling non langual text",
+   "c": 0,
+   "u": "2025-04-03",
+   "cr": "2025-01-16"
+  },
+  {
+   "n": 36774,
+   "t": "Text Extractor Does NOT Recognize Single Letters or Simple 2-letter Words",
+   "c": 0,
+   "u": "2026-04-18",
+   "cr": "2025-01-09"
+  },
+  {
+   "n": 36691,
+   "t": "TinyTask Doesnt Recognize PowerToys",
+   "c": 0,
+   "u": "2026-04-18",
+   "cr": "2025-01-04"
+  },
+  {
+   "n": 31582,
+   "t": "[Text Extractor] hope to have the option to set automatic sending of captured text to a specified application",
+   "c": 0,
+   "u": "2024-10-10",
+   "cr": "2024-02-25"
+  },
+  {
+   "n": 26538,
+   "t": "TextExtractor option ☑ Dim screen outside the selected area",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2023-05-31"
+  },
+  {
+   "n": 26058,
+   "t": "Get all text copied inside an image!",
+   "c": 0,
+   "u": "2026-04-16",
+   "cr": "2023-05-18"
+  },
+  {
+   "n": 21774,
+   "t": "Take a screenshot and identify the formula and convert it to latex format",
+   "c": 0,
+   "u": "2026-04-18",
+   "cr": "2022-11-05"
+  },
+  {
+   "n": 20580,
+   "t": "Didn't Detect All Symbols Properly",
+   "c": 0,
+   "u": "2024-10-24",
+   "cr": "2022-09-15"
+  }
+ ]
+}

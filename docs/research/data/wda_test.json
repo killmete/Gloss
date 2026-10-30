@@ -1,0 +1,4 @@
+{ "NONE/mss_gdi": 1.0, "NONE/set_ok": true, "EXCLUDEFROMCAPTURE/mss_gdi": 0.0, "EXCLUDEFROMCAPTURE/set_ok": true}
+{ "NONE/dxgi_duplication": 1.0, "NONE/set_ok": true, "EXCLUDEFROMCAPTURE/dxgi_duplication": 0.0, "EXCLUDEFROMCAPTURE/set_ok": true}
+{ "NONE/dxcam_dxgi": 1.0, "NONE/set_ok": true, "EXCLUDEFROMCAPTURE/dxcam_dxgi": 0.0, "EXCLUDEFROMCAPTURE/set_ok": true}
+{ "NONE/wgc": 1.0, "NONE/set_ok": true, "EXCLUDEFROMCAPTURE/wgc": 0.0, "EXCLUDEFROMCAPTURE/set_ok": true}
