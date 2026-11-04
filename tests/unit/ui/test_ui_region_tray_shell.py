@@ -12,7 +12,8 @@ from PySide6.QtTest import QTest
 from ui_qt_helpers import flush_deletes, get_app, item, pump
 
 from gloss.core.config import load_config
-from gloss.core.contracts import Health, Rect
+from gloss.core.contracts import Health, MonitorInfo, Rect
+from gloss.ui import region_selector as region_module
 from gloss.ui.region_selector import (
     MIN_SELECTION_PX,
     MonitorGeometry,
@@ -22,6 +23,17 @@ from gloss.ui.region_selector import (
 )
 from gloss.ui.shell import LOW_QUALITY_BANNER, GlossShell, secret_name_for, worst
 from gloss.ui.tray import TrayController, status_text
+
+FAKE_MONITORS = (MonitorInfo(r"\\.\DISPLAY9", Rect(-100000, -100000, 200000, 200000), 1.0, True),)
+
+
+def test_monitor_id_is_the_device_name_of_the_monitor_holding_the_rect():
+    left = MonitorInfo(r"\\.\DISPLAY1", Rect(-1920, 0, 1920, 1080), 1.0)
+    right = MonitorInfo(r"\\.\DISPLAY2", Rect(0, 0, 2560, 1440), 1.0, True)
+    assert region_module.monitor_id_for(Rect(100, 100, 50, 50), [left, right]) == r"\\.\DISPLAY2"
+    assert region_module.monitor_id_for(Rect(-500, 10, 100, 100), [left, right]) == r"\\.\DISPLAY1"
+    assert region_module.monitor_id_for(Rect(9000, 0, 10, 10), [left, right]) == ""
+
 
 # ---- region maths --------------------------------------------------------------------------
 
@@ -53,8 +65,9 @@ def test_drag_rect_works_in_any_direction():
     assert drag_rect(QPoint(50, 60), QPoint(10, 20)) == drag_rect(QPoint(10, 20), QPoint(50, 60))
 
 
-def test_selector_cancel_and_drag():
+def test_selector_cancel_and_drag(monkeypatch):
     get_app()
+    monkeypatch.setattr(region_module, "list_monitors", lambda: FAKE_MONITORS)
     selector = RegionSelector()
     got: list = []
     cancelled: list = []
@@ -76,7 +89,8 @@ def test_selector_cancel_and_drag():
         assert len(got) == 1
         rect, monitor_id = got[0]
         assert rect == logical_to_physical_rect(40, 50, 201, 101, monitor)
-        assert monitor_id == window.qscreen.name()
+        assert monitor_id == FAKE_MONITORS[0].monitor_id
+        assert monitor_id != window.qscreen.name()  # Qt gives a model name, not the device id
         assert not selector.active
         assert cancelled == []
     finally:

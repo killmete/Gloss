@@ -137,7 +137,6 @@ def main() -> int:
     awareness = ensure_per_monitor_v2()  # before Qt or mss load
 
     from gloss.core.config import load_config
-    from gloss.core.contracts import CaptureTarget
     from gloss.core.pipeline import Pipeline
     from gloss.core.registry import default_registry, discover
     from gloss.services.secrets import KeyringSecretStore
@@ -179,8 +178,8 @@ def main() -> int:
         pipeline.start()
         state["pipeline"] = pipeline
 
-    def on_region(rect: Any, monitor_id: str) -> None:
-        state["target"] = CaptureTarget("region", monitor_id=monitor_id or None, region=rect)
+    def on_region(rect: Any, _monitor_id: str) -> None:
+        state["target"] = _region_target(rect)
         _remember_region(rect)
         shell.clear()
         state["pipeline"].set_target(state["target"])
@@ -215,6 +214,20 @@ def _initial_target(config: Any) -> Any:
     if mode == "region":
         return _saved_region(config)
     return None  # window mode needs a window picker, which is not built yet
+
+
+def _region_target(rect: Any) -> Any:
+    """A capture target for a chosen area. The monitor is worked out from where the area is,
+    because the selector's screen label is not a Windows device name."""
+    from gloss.core.contracts import CaptureTarget
+    from gloss.services.monitors import list_monitors
+    from gloss.services.region import region_target
+
+    try:
+        return region_target(rect, list_monitors())
+    except Exception as exc:
+        log.warning("Could not match the area to a monitor: %s", type(exc).__name__)
+        return CaptureTarget("region", region=rect)
 
 
 def _saved_region(config: Any) -> Any:

@@ -4,6 +4,9 @@ One frozen window covers each monitor, showing that monitor as it looked a momen
 The user drags a rectangle on any of them. The result is a ``Rect`` in physical desktop pixels
 (what the capture adapters expect) and the monitor's Windows device name, such as
 ``\\\\.\\DISPLAY1``, which is the ``monitor_id`` the capture adapters use.
+The id comes from ``services.monitors.list_monitors()`` matched to the selected rectangle.
+Qt's ``QScreen.name()`` is the monitor's model name on Windows (for example ``GS24F14``), so it
+is never used.
 
 A selection stays inside one monitor. Qt places each monitor's logical rectangle at the same
 origin as its physical one, but scales its size by the monitor's scale (``devicePixelRatio``),
@@ -17,13 +20,15 @@ from __future__ import annotations
 import contextlib
 import logging
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from PySide6.QtCore import QObject, QPoint, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPen, QPixmap, QScreen
 from PySide6.QtWidgets import QApplication, QWidget
 
-from gloss.core.contracts import Rect
+from gloss.core.contracts import MonitorInfo, Rect
+from gloss.services.monitors import list_monitors, monitor_with_most_overlap
 from gloss.ui.native import ensure_app, exclude_widget
 
 log = logging.getLogger(__name__)
@@ -51,6 +56,15 @@ def logical_to_physical_rect(
     x1 = monitor.x + math.ceil((left + width) * monitor.dpr)
     y1 = monitor.y + math.ceil((top + height) * monitor.dpr)
     return Rect(x0, y0, max(0, x1 - x0), max(0, y1 - y0))
+
+
+def monitor_id_for(rect: Rect, monitors: Sequence[MonitorInfo] | None = None) -> str:
+    """The capture adapters' id for the monitor holding most of ``rect``, or "" if none."""
+    try:
+        found = monitor_with_most_overlap(list_monitors() if monitors is None else monitors, rect)
+    except Exception:
+        return ""
+    return found.monitor_id if found is not None else ""
 
 
 def drag_rect(a: QPoint, b: QPoint) -> QRect:
@@ -140,7 +154,7 @@ class _SelectionWindow(QWidget):
         rect = logical_to_physical_rect(
             selection.x(), selection.y(), selection.width(), selection.height(), self.monitor()
         )
-        self.chosen.emit(rect, self.qscreen.name())
+        self.chosen.emit(rect, monitor_id_for(rect))
 
     def keyPressEvent(self, event: object) -> None:  # noqa: N802
         if event.key() == Qt.Key.Key_Escape:  # type: ignore[attr-defined]
