@@ -43,6 +43,8 @@ from pydantic import (
     Field,
     StrictBool,
     ValidationError,
+    ValidationInfo,
+    field_validator,
 )
 
 from gloss.core.config_migrations import (
@@ -124,9 +126,19 @@ class CaptureConfig(Section):
     tile_size: PositiveInt
     black_frame_reads: PositiveInt
     black_frame_max_mean: NonNegativeFloat
+    idle_fps: PositiveFloat
+    idle_after_s: PositiveFloat
     region: SavedRegion
     sources: CaptureSources
     adapters: AdapterTables
+
+    @field_validator("idle_fps")
+    @classmethod
+    def _idle_not_above_max(cls, value: float, info: ValidationInfo) -> float:
+        fps_max = info.data.get("fps_max")  # absent if fps_max itself was invalid
+        if fps_max is not None and value > fps_max:
+            raise ValueError(f"idle_fps must not be above fps_max ({fps_max:g})")
+        return value
 
     @property
     def active(self) -> SourceChoice:
@@ -189,6 +201,7 @@ class TranslateConfig(Section):
 class RenderConfig(Section):
     mode: Literal["panel", "overlay", "both"]
     font_size: PositiveInt
+    move_threshold_px: NonNegativeInt
     adapters: AdapterTables
 
     @property
@@ -443,6 +456,37 @@ def _read_user(path: Path, warnings: list[str]) -> dict[str, Any]:
     return result.data
 
 
+def _is_number(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _idle_follows_fps_max(defaults: dict[str, Any], user: dict[str, Any]) -> None:
+    """A user who lowers ``fps_max`` below the default ``idle_fps`` has made a sensible
+    choice, so the idle rate quietly follows it down. Only this layer changes, never the file.
+    An ``idle_fps`` the user set themselves is still checked, and warned about, in validation.
+    """
+    capture = user.get("capture")
+    if not isinstance(capture, dict) or "idle_fps" in capture:
+        return
+    fps_max, idle = capture.get("fps_max"), defaults["capture"]["idle_fps"]
+    if _is_number(fps_max) and _is_number(idle) and 0 < fps_max < idle:
+        capture["idle_fps"] = fps_max
+
+
+def _clamp_idle_fps(defaults: dict[str, Any], user: dict[str, Any]) -> bool:
+    """The user set ``idle_fps`` above ``fps_max``: use ``fps_max`` and keep their other
+    capture settings. False if this is not that error (a wrong type, say)."""
+    capture = user.get("capture")
+    if not isinstance(capture, dict):
+        return False
+    fps_max = capture.get("fps_max", defaults["capture"]["fps_max"])
+    idle = capture.get("idle_fps")
+    if not (_is_number(fps_max) and _is_number(idle)) or not 0 < fps_max < idle:
+        return False
+    capture["idle_fps"] = fps_max
+    return True
+
+
 def _validate(
     defaults: dict[str, Any], user: dict[str, Any], warnings: list[str], defaults_path: Path
 ) -> GlossConfig:
@@ -457,6 +501,9 @@ def _validate(
             ):
                 reason = f"its value must be true or false: {error['msg']}"
                 _cloud_off(user, reason, warnings)
+                continue
+            if error["loc"] == ("capture", "idle_fps") and _clamp_idle_fps(defaults, user):
+                warnings.append(f"Using capture.fps_max for 'capture.idle_fps': {error['msg']}")
                 continue
             if not _remove_key(user, error["loc"]):
                 raise ConfigError(f"Default config {defaults_path} is invalid: {exc}") from exc
@@ -475,6 +522,7 @@ def load_config(
     defaults = _read_defaults(defaults_file)
     user = _read_user(user_file, warnings)
     _check_privacy_intent(user, warnings)
+    _idle_follows_fps_max(defaults, user)
     config = _validate(defaults, user, warnings, defaults_file)
     warnings += [f"Unknown setting ignored: {key}" for key in _unknown_keys(config)]
     return LoadedConfig(config, tuple(warnings))
@@ -508,7 +556,10 @@ def update_user_config(
         )
     updated = _deep_merge(result.data, changes)
     updated["config_version"] = CURRENT_CONFIG_VERSION
-    GlossConfig.model_validate(_deep_merge(_read_defaults(defaults_file), updated))
+    defaults = _read_defaults(defaults_file)
+    effective = copy.deepcopy(updated)
+    _idle_follows_fps_max(defaults, effective)  # the file keeps only what the user chose
+    GlossConfig.model_validate(_deep_merge(defaults, effective))
     if user_file.exists():
         _backup(user_file, f"v{result.from_version}" if result.changed else "settings")
     _write_toml_atomic(user_file, updated)

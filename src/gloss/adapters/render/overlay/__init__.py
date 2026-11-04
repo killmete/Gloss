@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -55,6 +55,9 @@ DEFAULT_FONT_SIZE = 14
 DEFAULT_REASSERT_MS = 2000
 DEFAULT_MAX_WIDTH_RATIO = 0.5
 DEFAULT_LINGER_S = 0.0
+DEFAULT_MIN_FONT_PX = 9
+DEFAULT_MAX_FONT_PX = 28
+DEFAULT_MAX_LINES = 2
 CHIP_PAD = 4
 CHIP_GAP = 2
 CHIP_RADIUS = 4
@@ -128,6 +131,10 @@ class _OverlaySettings:
     reassert_ms: int
     max_width_ratio: float
     linger_s: float
+    min_font_px: int
+    max_font_px: int
+    max_lines: int
+    clip_to_capture: bool
 
     @classmethod
     def parse(cls, settings: Mapping[str, Any]) -> _OverlaySettings:
@@ -138,7 +145,155 @@ class _OverlaySettings:
             ),
             max_width_ratio=_number(settings, "max_width_ratio", DEFAULT_MAX_WIDTH_RATIO, 0.1, 1.0),
             linger_s=_number(settings, "linger_s", DEFAULT_LINGER_S, 0, 86400),
+            min_font_px=int(_number(settings, "min_font_px", DEFAULT_MIN_FONT_PX, 4, 96)),
+            max_font_px=int(_number(settings, "max_font_px", DEFAULT_MAX_FONT_PX, 4, 200)),
+            max_lines=int(_number(settings, "max_lines", DEFAULT_MAX_LINES, 1, 10)),
+            clip_to_capture=settings.get("clip_to_capture", True) is not False,
         )
+
+
+# ---- chip placement (pure maths; the text measuring function is passed in) -----------------
+
+
+@dataclass(frozen=True)
+class LineBox:
+    """One translated line and where its original sits (physical desktop pixels)."""
+
+    key: str
+    text: str
+    bbox: Rect
+    low_quality: bool
+
+
+@dataclass(frozen=True)
+class ChipLayout:
+    """Where and how to draw one chip, in the monitor window's logical pixels."""
+
+    key: str
+    x: float
+    y: float
+    w: float
+    h: float
+    font_px: int
+    lines: tuple[str, ...]
+    low_quality: bool
+
+
+Measure = Callable[[str, int], float]  # (text, font pixel size) -> width in logical pixels
+ELLIPSIS = "…"
+
+
+def _elide(text: str, font_px: int, width: float, measure: Measure) -> str:
+    """Shorten ``text`` until it and an ellipsis fit in ``width``."""
+    text = text.rstrip()
+    if measure(text, font_px) <= width:
+        return text
+    low, high = 0, len(text)
+    while low < high:  # the longest prefix that still fits with the ellipsis
+        mid = (low + high + 1) // 2
+        if measure(text[:mid].rstrip() + ELLIPSIS, font_px) <= width:
+            low = mid
+        else:
+            high = mid - 1
+    return text[:low].rstrip() + ELLIPSIS
+
+
+def wrap_text(
+    text: str, font_px: int, width: float, measure: Measure, max_lines: int
+) -> tuple[str, ...]:
+    """Break ``text`` into at most ``max_lines`` lines no wider than ``width``. Breaks at
+    spaces when it can, anywhere otherwise (Chinese has no spaces). What does not fit is cut off
+    with an ellipsis on the last line."""
+    rest = " ".join(text.split())
+    lines: list[str] = []
+    while rest and len(lines) < max_lines:
+        low, high = 1, len(rest)
+        while low < high:  # the longest prefix that fits
+            mid = (low + high + 1) // 2
+            if measure(rest[:mid], font_px) <= width:
+                low = mid
+            else:
+                high = mid - 1
+        if low >= len(rest):
+            lines.append(rest)
+            rest = ""
+            break
+        space = rest.rfind(" ", 1, low + 1)
+        cut = space if space > 0 else low
+        lines.append(rest[:cut].rstrip())
+        rest = rest[cut:].lstrip()
+    if rest:
+        lines[-1] = _elide(lines[-1] + " " + rest, font_px, width, measure)
+    return tuple(lines)
+
+
+def _line_height(font_px: int) -> int:
+    return round(font_px * 1.2)
+
+
+def layout_chips(
+    lines: Sequence[LineBox],
+    screen: ScreenGeometry,
+    cfg: _OverlaySettings,
+    measure: Measure,
+    region: Rect | None,
+) -> list[ChipLayout]:
+    """Place one chip per line, on top of its own original text.
+
+    A chip keeps its line's x, y and height, and is never moved by another chip. The English is
+    sized from the line height, shrunk until it fits on one line, widened to the right (never
+    past the capture region or ``max_width_ratio``), and only as a last resort wrapped downward
+    into the free space above the next line, or cut with an ellipsis. Lines outside the capture
+    region are left out when ``clip_to_capture`` is on.
+    """
+    clip = region if (cfg.clip_to_capture and region is not None) else None
+    boxes = []
+    for line in lines:
+        if clip is not None:
+            centre_x = line.bbox.x + line.bbox.w / 2
+            centre_y = line.bbox.y + line.bbox.h / 2
+            if not (clip.x <= centre_x < clip.right and clip.y <= centre_y < clip.bottom):
+                continue
+        x, y, w, h = physical_to_logical(line.bbox, screen)
+        boxes.append((line, x, y, w, h))
+
+    limit_right = screen.logical_w
+    limit_bottom = screen.logical_h
+    if clip is not None:
+        limit_right = min(limit_right, (clip.right - screen.x) / screen.dpr)
+        limit_bottom = min(limit_bottom, (clip.bottom - screen.y) / screen.dpr)
+    max_w = screen.logical_w * cfg.max_width_ratio
+    min_px = min(cfg.min_font_px, cfg.max_font_px)
+    max_px = max(cfg.min_font_px, cfg.max_font_px)
+
+    chips: list[ChipLayout] = []
+    for line, x, y, w, h in boxes:
+        avail = max(min(x + max(w, max_w), limit_right) - x, min(w, screen.logical_w - x), 8.0)
+        start = min(max_px, max(min_px, round(h * 0.7)))
+        placed: ChipLayout | None = None
+        for px in range(start, min_px - 1, -1):
+            need = measure(line.text, px) + 2 * CHIP_PAD
+            if need <= avail:
+                height = max(h, _line_height(px) + 2)
+                placed = ChipLayout(
+                    line.key, x, y, max(w, need), height, px, (line.text,), line.low_quality
+                )
+                break
+        if placed is None:
+            lh = _line_height(min_px)
+            below = [
+                by
+                for (other, bx, by, bw, _bh) in boxes
+                if other is not line and by > y + h / 2 and bx < x + avail and bx + bw > x
+            ]
+            next_top = min(below) if below else limit_bottom
+            free = max(h, next_top - y - CHIP_GAP)
+            rows = max(1, min(cfg.max_lines, int((free - 4) // lh)))
+            wrapped = wrap_text(line.text, min_px, avail - 2 * CHIP_PAD, measure, rows)
+            height = max(h, len(wrapped) * lh + 4) if len(wrapped) > 1 else max(h, lh + 2)
+            placed = ChipLayout(line.key, x, y, avail, height, min_px, wrapped, line.low_quality)
+        chips.append(placed)
+    return chips
 
 
 @dataclass
@@ -194,7 +349,8 @@ class OverlayRenderer:
                 continue  # Nowhere to draw it, or nothing worth covering the original with.
             fresh.append(_Line(result.line_id, text, item.bbox, item.low_quality, expires))
         if fresh:
-            controller.post(lambda: controller.add(fresh))
+            region = frame_meta.region if frame_meta is not None else None
+            controller.post(lambda: controller.add(fresh, region))
 
     def remove(self, line_ids: Iterable[str]) -> None:
         """Take specific lines off the screen, for example when the source line scrolled away."""

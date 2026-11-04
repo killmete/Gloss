@@ -531,3 +531,69 @@ def test_dedupe_max_lines_is_validated():
     assert TrackerConfig().dedupe_max_lines == 2000
     with pytest.raises(ValueError):
         TrackerConfig(dedupe_max_lines=0)
+
+
+# ---- a line OCR sometimes reads as pieces (animated sticker beside the text) ---------------
+
+WHOLE = "大哥你上班一天有接单两小时多吗"
+
+
+def emitted_whole(t, now):
+    out = []
+    for _ in range(2):
+        out += t.update([blk(WHOLE, x=23, y=100, w=119)], now=now()).new
+    assert len(out) == 1
+    return out[0]
+
+
+def test_pieces_of_a_known_line_are_not_new_lines_and_change_nothing(now):
+    t = tracker(stable_reads=2)
+    first = emitted_whole(t, now)
+    pieces = [blk("大哥你上班一天", x=24, y=100, w=56), blk("有接单两小时多吗", x=80, y=100, w=62)]
+    for _ in range(4):
+        result = t.update(pieces, now=now())
+        assert result.new == () and result.dropped == ()
+        assert [b.line_id for b in result.visible] == [first.line_id]
+        assert result.visible[0].text == first.text and result.visible[0].bbox == first.bbox
+    back = t.update([blk(WHOLE, x=23, y=100, w=119)], now=now())
+    assert back.new == () and back.visible[0].bbox == first.bbox
+
+
+def test_alternating_whole_and_pieces_never_emits_again(now):
+    t = tracker(stable_reads=2)
+    emitted_whole(t, now)
+    pieces = [blk("大哥你上班一天", x=24, y=100, w=56), blk("有接单两小时多吗", x=80, y=100, w=62)]
+    total = []
+    for i in range(10):
+        reads = pieces if i % 2 else [blk(WHOLE, x=23, y=100, w=119)]
+        total += t.update(reads, now=now()).new
+    assert total == []
+
+
+def test_pieces_keep_the_line_alive_without_a_whole_read(now):
+    t = tracker(stable_reads=2)
+    emitted_whole(t, now)
+    for _ in range(6):  # more scans than emitted_max_misses
+        t.update([blk("大哥你上班一天", x=24, y=100, w=56)], now=now())
+    assert len(t.visible) == 1
+
+
+def test_a_new_short_line_on_another_row_or_with_other_text_still_appears(now):
+    t = tracker(stable_reads=2)
+    emitted_whole(t, now)
+    below = blk("谢谢老板", x=24, y=140, w=56)  # another row
+    beside = blk("完全不同的文字", x=24, y=100, w=56)  # same place, text not contained
+    emitted = []
+    for _ in range(2):
+        emitted += t.update([blk(WHOLE, x=23, y=100, w=119), below], now=now()).new
+    assert [b.text for b in emitted] == ["谢谢老板"]
+    for _ in range(2):
+        emitted += t.update([beside], now=now()).new
+    assert "完全不同的文字" in [b.text for b in emitted]
+
+
+def test_piece_thresholds_are_configurable():
+    cfg = TrackerConfig(piece_inside=0.9, piece_min_chars=3)
+    assert (cfg.piece_inside, cfg.piece_min_chars) == (0.9, 3)
+    with pytest.raises(ValueError):
+        TrackerConfig(piece_inside=1.5)

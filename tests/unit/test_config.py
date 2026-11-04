@@ -89,7 +89,7 @@ def test_missing_default_toml_is_a_build_error(tmp_path):
 
 
 def test_invalid_default_toml_is_a_build_error_not_a_silent_fallback(tmp_path):
-    text = default_config_path().read_text(encoding="utf-8").replace("fps_max = 4", "fps_max = -1")
+    text = default_config_path().read_text(encoding="utf-8").replace("fps_max = 12", "fps_max = -1")
     bad = write(tmp_path / "default.toml", text)
     with pytest.raises(ConfigError, match="invalid"):
         load_config(defaults_path=bad, user_path=tmp_path / "u.toml")

@@ -56,6 +56,9 @@ def test_capture_defaults_match_the_code(name):
     from_toml = capture_common.parse_settings(CONFIG.adapter_settings("capture", name))
     from_code = capture_common.parse_settings(shared_only("capture", name))
     assert from_toml == from_code
+
+
+def test_capture_fps_default_matches_the_code():
     assert CONFIG.capture.fps_max == capture_common.DEFAULT_FPS_MAX
 
 
@@ -188,3 +191,88 @@ def test_a_bad_dedupe_memory_limit_warns_and_uses_the_default(tmp_path, value):
     loaded = load_config(user_path=user)
     assert loaded.config.ocr.dedupe_max_lines == 2000
     assert any("ocr.dedupe_max_lines" in w for w in loaded.warnings), loaded.warnings
+
+
+# ---- adaptive frame rate and box stability -----------------------------------------------
+
+
+def test_frame_rate_and_box_stability_defaults():
+    c = CONFIG
+    assert (c.capture.fps_max, c.capture.idle_fps, c.capture.idle_after_s) == (12, 4, 1.0)
+    assert c.render.move_threshold_px == 4
+
+
+def test_idle_fps_may_equal_fps_max(tmp_path):
+    user = _write(tmp_path / "config.toml", "[capture]\nfps_max = 6\nidle_fps = 6\n")
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == ()
+    assert loaded.config.capture.idle_fps == 6
+
+
+def test_idle_fps_above_fps_max_warns_and_uses_fps_max(tmp_path):
+    user = _write(tmp_path / "config.toml", "[capture]\nfps_max = 6\nidle_fps = 10\n")
+    loaded = load_config(user_path=user)
+    assert (loaded.config.capture.fps_max, loaded.config.capture.idle_fps) == (6, 6)
+    assert any("capture.idle_fps" in w for w in loaded.warnings), loaded.warnings
+
+
+def test_lowering_fps_max_below_the_default_idle_fps_keeps_the_users_fps_max(tmp_path):
+    """A lower fps_max alone is a sensible choice, so it must not throw away the user's
+    other capture settings. The idle rate follows it down."""
+    user = _write(tmp_path / "config.toml", "[capture]\nfps_max = 2\ntile_size = 32\n")
+    loaded = load_config(user_path=user)
+    capture = loaded.config.capture
+    assert (capture.fps_max, capture.idle_fps, capture.tile_size) == (2, 2, 32)
+    assert loaded.warnings == (), "a lower fps_max on its own is not a mistake"
+    assert "idle_fps" not in user.read_text(encoding="utf-8"), "the file is not rewritten"
+
+
+def test_the_settings_window_can_save_a_low_fps_max_alone(tmp_path):
+    user = tmp_path / "config.toml"
+    update_user_config({"capture": {"fps_max": 2}}, user_path=user)
+    assert "idle_fps" not in user.read_text(encoding="utf-8")
+    capture = load_config(user_path=user).config.capture
+    assert (capture.fps_max, capture.idle_fps) == (2, 2)
+
+
+def test_the_settings_window_cannot_save_idle_fps_above_fps_max(tmp_path):
+    from pydantic import ValidationError
+
+    user = tmp_path / "config.toml"
+    with pytest.raises(ValidationError):
+        update_user_config({"capture": {"fps_max": 5, "idle_fps": 8}}, user_path=user)
+    assert not user.exists()
+
+
+@pytest.mark.parametrize(
+    ("section", "key", "value"),
+    [
+        ("capture", "idle_fps", "0"),
+        ("capture", "idle_fps", "true"),
+        ("capture", "idle_after_s", "0"),
+        ("capture", "idle_after_s", "-1.0"),
+        ("render", "move_threshold_px", "-1"),
+        ("render", "move_threshold_px", "2.5"),
+        ("render", "move_threshold_px", "true"),
+    ],
+)
+def test_bad_frame_rate_or_threshold_values_warn_and_use_the_default(tmp_path, section, key, value):
+    user = _write(tmp_path / "config.toml", f"[{section}]\n{key} = {value}\n")
+    loaded = load_config(user_path=user)
+    assert getattr(getattr(loaded.config, section), key) == getattr(getattr(CONFIG, section), key)
+    assert any(f"{section}.{key}" in w for w in loaded.warnings), loaded.warnings
+
+
+def test_move_threshold_zero_is_allowed(tmp_path):
+    user = _write(tmp_path / "config.toml", "[render]\nmove_threshold_px = 0\n")
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == () and loaded.config.render.move_threshold_px == 0
+
+
+def test_overlay_fit_keys_are_listed_with_sane_defaults():
+    """The overlay validates these itself (free-form table); the defaults test above checks
+    they equal the code once the ui-engineer adds them."""
+    o = CONFIG.render.adapters["overlay"]
+    assert (o["min_font_px"], o["max_font_px"], o["max_lines"]) == (9, 28, 2)
+    assert 0 < o["min_font_px"] <= o["max_font_px"]
+    assert o["clip_to_capture"] is True

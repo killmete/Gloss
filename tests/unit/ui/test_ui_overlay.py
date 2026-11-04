@@ -130,7 +130,7 @@ def test_a_new_result_for_the_same_line_replaces_the_old(overlay):
     assert chips(overlay) == [("new", False)]
 
 
-def test_chips_that_would_overlap_are_pushed_apart(overlay):
+def test_chips_stay_on_their_own_lines_even_when_they_overlap(overlay):
     overlay.show(
         [
             item("first", line_id="a", bbox=Rect(10, 10, 100, 20)),
@@ -138,9 +138,8 @@ def test_chips_that_would_overlap_are_pushed_apart(overlay):
         ],
         None,
     )
-    rects = [c.rect for w in overlay.windows for c in w.chips]
-    assert len(rects) == 2
-    assert not rects[0].intersects(rects[1])
+    rects = sorted(c.rect.y() for w in overlay.windows for c in w.chips)
+    assert rects == [10.0, 12.0]  # nobody is pushed down by a neighbour
 
 
 def test_identical_content_is_not_laid_out_again(overlay):
@@ -216,3 +215,17 @@ def test_health_reports_open_state(overlay):
     assert overlay.health().state in ("ok", "degraded")
     overlay.close()
     assert overlay.health().state == "down"
+
+
+def test_lines_outside_the_latest_captured_area_are_not_drawn(overlay):
+    from gloss.core.contracts import FrameMeta
+
+    meta = FrameMeta("s", Rect(0, 0, 800, 600), 0.0, 1.0)
+    overlay.show(
+        [
+            item("in", line_id="a", bbox=Rect(10, 10, 100, 20)),
+            item("out", line_id="b", bbox=Rect(10, 900, 100, 20)),
+        ],
+        meta,
+    )
+    assert chips(overlay) == [("in", False)]

@@ -12,21 +12,30 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from PySide6.QtCore import QEvent, QObject, QRect, QRectF, Qt, QTimer, Signal, Slot
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QScreen
+from PySide6.QtCore import QEvent, QObject, QRectF, Qt, QTimer, Signal, Slot
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontMetrics,
+    QFontMetricsF,
+    QGuiApplication,
+    QPainter,
+    QPen,
+    QScreen,
+)
 from PySide6.QtWidgets import QApplication, QWidget
 
 from gloss.adapters.render.overlay import (
-    CHIP_GAP,
     CHIP_PAD,
     CHIP_RADIUS,
+    LineBox,
     ScreenGeometry,
     _Line,
     _OverlaySettings,
-    physical_to_logical,
+    layout_chips,
     pick_screen,
 )
-from gloss.core.contracts import Health
+from gloss.core.contracts import Health, Rect
 from gloss.services.capture_exclusion import exclude_from_capture
 
 log = logging.getLogger(__name__)
@@ -162,6 +171,8 @@ class _Chip:
     rect: QRectF
     text: str
     low_quality: bool
+    font_px: int
+    lines: tuple[str, ...]
 
 
 class _ScreenWindow(QWidget):
@@ -194,6 +205,7 @@ class _ScreenWindow(QWidget):
         self.exclusion_ok = True
         self.click_through_ok = True
         self._signature: object = None
+        self._metrics: dict[int, QFontMetricsF] = {}
         self.installEventFilter(self)
         self.prepare_native()
 
@@ -228,29 +240,26 @@ class _ScreenWindow(QWidget):
     def physical(self) -> ScreenGeometry:
         return screen_geometry(self.qscreen)
 
-    def set_content(self, lines: Iterable[_Line], banner: str, is_primary: bool) -> None:
+    def _measure(self, text: str, font_px: int) -> float:
+        metrics = self._metrics.get(font_px)
+        if metrics is None:
+            font = QFont(self._font)
+            font.setPixelSize(font_px)
+            metrics = self._metrics[font_px] = QFontMetricsF(font)
+        return metrics.horizontalAdvance(text)
+
+    def set_content(
+        self, lines: Iterable[_Line], banner: str, is_primary: bool, region: Rect | None = None
+    ) -> None:
         """Lay out chips for the lines on this monitor. Repaints only if something changed."""
         geometry = self.physical()
-        metrics = QFontMetrics(self._font)
-        max_width = max(80.0, geometry.logical_w * self._cfg.max_width_ratio)
-        flags = int(Qt.TextFlag.TextWordWrap | Qt.TextFlag.TextWrapAnywhere)
-        placed: list[QRectF] = []
-        chips: list[_Chip] = []
-        for line in sorted(lines, key=lambda ln: (ln.bbox.y, ln.bbox.x)):
-            x, y, w, _h = physical_to_logical(line.bbox, geometry)
-            natural = metrics.horizontalAdvance(line.text) + 2 * CHIP_PAD + 2
-            width = min(max(w, min(natural, max_width)), max_width)
-            width = max(width, 2 * CHIP_PAD + 8)
-            inner = int(width - 2 * CHIP_PAD)
-            text_h = metrics.boundingRect(QRect(0, 0, inner, 100000), flags, line.text).height()
-            rect = QRectF(x, y, width, text_h + 2 * CHIP_PAD)
-            for other in placed:  # Slide down past any chip already there.
-                if rect.intersects(other):
-                    rect.moveTop(other.bottom() + CHIP_GAP)
-            rect.moveLeft(max(0.0, min(rect.x(), geometry.logical_w - rect.width())))
-            rect.moveTop(max(0.0, min(rect.y(), geometry.logical_h - rect.height())))
-            placed.append(rect)
-            chips.append(_Chip(rect, line.text, line.low_quality))
+        boxes = [LineBox(ln.line_id, ln.text, ln.bbox, ln.low_quality) for ln in lines]
+        boxes.sort(key=lambda b: (b.bbox.y, b.bbox.x, b.key))
+        layouts = layout_chips(boxes, geometry, self._cfg, self._measure, region)
+        chips = [
+            _Chip(QRectF(c.x, c.y, c.w, c.h), " ".join(c.lines), c.low_quality, c.font_px, c.lines)
+            for c in layouts
+        ]
 
         banner_rect = None
         banner_text = banner if is_primary else ""
@@ -259,7 +268,10 @@ class _ScreenWindow(QWidget):
             bw = min(bm.horizontalAdvance(banner_text) + 24, geometry.logical_w - 20)
             banner_rect = QRectF((geometry.logical_w - bw) / 2, 8, bw, bm.height() + 12)
 
-        signature = (tuple((c.rect.getRect(), c.text, c.low_quality) for c in chips), banner_text)
+        signature = (
+            tuple((c.rect.getRect(), c.lines, c.font_px, c.low_quality) for c in chips),
+            banner_text,
+        )
         if signature == self._signature:
             return
         self._signature = signature
@@ -270,10 +282,6 @@ class _ScreenWindow(QWidget):
     def paintEvent(self, event: Any) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setFont(self._font)
-        flags = int(
-            Qt.TextFlag.TextWordWrap | Qt.TextFlag.TextWrapAnywhere | Qt.AlignmentFlag.AlignLeft
-        )
         for chip in self.chips:
             painter.setBrush(QColor(16, 16, 20, 232))
             if chip.low_quality:
@@ -282,8 +290,23 @@ class _ScreenWindow(QWidget):
                 painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(chip.rect, CHIP_RADIUS, CHIP_RADIUS)
             painter.setPen(QColor("#f5f5f8"))
-            inner = chip.rect.adjusted(CHIP_PAD, CHIP_PAD, -CHIP_PAD, -CHIP_PAD)
-            painter.drawText(inner, flags, chip.text)
+            font = QFont(self._font)
+            font.setPixelSize(chip.font_px)
+            painter.setFont(font)
+            if len(chip.lines) == 1:
+                inner = chip.rect.adjusted(CHIP_PAD, 0, -CHIP_PAD, 0)
+                align = int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                painter.drawText(inner, align, chip.lines[0])
+                continue
+            step = round(chip.font_px * 1.2)
+            for index, text in enumerate(chip.lines):
+                row = QRectF(
+                    chip.rect.x() + CHIP_PAD,
+                    chip.rect.y() + 2 + index * step,
+                    chip.rect.width(),
+                    step,
+                )
+                painter.drawText(row, int(Qt.AlignmentFlag.AlignLeft), text)
         if self.banner_rect is not None:
             painter.setFont(self._banner_font)
             painter.setBrush(QColor("#f5a623"))
@@ -304,6 +327,7 @@ class OverlayController:
         self.lines: dict[str, _Line] = {}
         self.visible = False
         self.banner = ""
+        self.region: Rect | None = None
         self.timer: QTimer | None = None
         self._rebuild_timer: QTimer | None = None
         self._screen_signals = False
@@ -406,7 +430,7 @@ class OverlayController:
         primary = QGuiApplication.primaryScreen()
         for window, bucket in zip(self.windows, buckets, strict=True):
             is_primary = window.qscreen == primary
-            window.set_content(bucket, self.banner, is_primary)
+            window.set_content(bucket, self.banner, is_primary, self.region)
             wanted = self.visible and (bool(bucket) or (is_primary and bool(self.banner)))
             if wanted and not window.isVisible():
                 window.show()
@@ -414,7 +438,9 @@ class OverlayController:
             elif not wanted and window.isVisible():
                 window.hide()
 
-    def add(self, lines: Iterable[_Line]) -> None:
+    def add(self, lines: Iterable[_Line], region: Rect | None = None) -> None:
+        if region is not None:
+            self.region = region  # the latest captured area
         for line in lines:
             self.lines[line.line_id] = line
         self.refresh()
@@ -426,6 +452,7 @@ class OverlayController:
 
     def clear(self) -> None:
         self.lines.clear()
+        self.region = None
         self.refresh()
 
     def set_visible(self, visible: bool) -> None:

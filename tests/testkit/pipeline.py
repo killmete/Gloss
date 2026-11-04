@@ -79,6 +79,8 @@ def fast_config(
     breaker_failures: int = 3,
     black_reads: int = 3,
     cloud: bool = True,
+    idle_fps: float | None = None,
+    idle_after_s: float = 1.0,
 ) -> GlossConfig:
     """The default config with a fast frame rate, short timeouts and the fakes' names."""
     c = base_config()
@@ -97,6 +99,8 @@ def fast_config(
                     "fps_max": fps,
                     "sources": sources,
                     "black_frame_reads": black_reads,
+                    "idle_fps": idle_fps if idle_fps is not None else fps,
+                    "idle_after_s": idle_after_s,
                 }
             ),
             "ocr": c.ocr.model_copy(
@@ -151,6 +155,7 @@ class CaptureScript:
         self.targets: list[CaptureTarget] = []
         self.open_error: Exception | None = None
         self.grab_error: Exception | None = None
+        self.vary = False  # every grab returns a slightly different picture (a busy screen)
         self.bad_frame_once = False  # the next grab returns a non-Frame, to crash the worker
         self.hold = threading.Event()  # set = a grab blocks until released
         self.hold.set()
@@ -193,6 +198,8 @@ class CaptureScript:
                 image = script.image
                 if image is None:
                     return None
+                if script.vary:
+                    image = with_patch(image, x=10 + script.grabs % 100)
                 h, w = image.shape[:2]
                 region = Rect(self._origin[0], self._origin[1], w, h)
                 return Frame(image, script.name, region, time.monotonic(), 1.0)
@@ -229,6 +236,7 @@ class OcrScript:
         self.open_error: Exception | None = None
         self.read_error: Exception | None = None
         self.waits: list[threading.Event] = []
+        self.reader: Callable[[Frame, Sequence[Rect] | None], Sequence[TextBlock]] | None = None
 
     def register(self, registry: Registry) -> OcrScript:
         script = self
@@ -252,6 +260,8 @@ class OcrScript:
                     script.waits.pop(0).wait(BLOCK_S)
                 if script.read_error is not None:
                     raise script.read_error
+                if script.reader is not None:
+                    return list(script.reader(frame, regions))
                 return list(script.blocks)
 
             def close(self) -> None:

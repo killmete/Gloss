@@ -84,6 +84,8 @@ class TrackerConfig:
     dup_match: float = 0.85  # dedupe similarity (fuzzy, so jitter does not defeat it)
     pending_max_misses: int = 2  # scans in a row that may miss a not-yet-stable line
     emitted_max_misses: int = 3  # ... and an emitted one, before it leaves ``visible``
+    piece_inside: float = 0.8  # share of a read's box inside a known line to be a piece of it
+    piece_min_chars: int = 2  # shortest read treated as a piece
     group_lines: bool = True
     dedupe_max_lines: int = _MAX_SEEN  # most texts kept for dedupe, whatever the window
 
@@ -96,7 +98,14 @@ class TrackerConfig:
             raise ValueError("dedupe_max_lines must be at least 1")
         if self.pending_max_misses < 1 or self.emitted_max_misses < 1:
             raise ValueError("max misses must be at least 1")
-        for name in ("min_iou", "text_match", "scroll_match", "consistent", "dup_match"):
+        for name in (
+            "min_iou",
+            "text_match",
+            "scroll_match",
+            "consistent",
+            "dup_match",
+            "piece_inside",
+        ):
             if not 0.0 <= getattr(self, name) <= 1.0:
                 raise ValueError(f"{name} must be between 0 and 1")
 
@@ -183,8 +192,11 @@ class TextTracker:
         """
         before = self._live_ids()
         reads = [r for r in (self._read(b) for b in blocks) if r is not None]
+        reads, supporting = self._split_pieces(reads)
         matched = self._match(reads)
-        touched: list[_Track] = []
+        touched: list[_Track] = list(supporting)
+        for track in supporting:
+            track.misses = 0  # seen, as pieces
         for index, read in enumerate(reads):
             track = matched.get(index)
             if track is None:
@@ -238,6 +250,43 @@ class TextTracker:
         if not key:
             return None
         return block, text, key
+
+    # ---- pieces of a known line ----------------------------------------------------------
+
+    def _split_pieces(
+        self, reads: list[tuple[TextBlock, str, str]]
+    ) -> tuple[list[tuple[TextBlock, str, str]], list[_Track]]:
+        """Take out reads that are only a piece of a stable line (OCR split it in two, for
+        example around an animated sticker). They keep that line alive and nothing more."""
+        cfg = self.config
+        stable = [t for t in self._tracks if t.stable and t.emitted_key]
+        if not stable:
+            return reads, []
+        rest: list[tuple[TextBlock, str, str]] = []
+        supporting: dict[int, _Track] = {}
+        for read in reads:
+            owner = self._piece_owner(read, stable) if len(read[2]) >= cfg.piece_min_chars else None
+            if owner is None:
+                rest.append(read)
+            else:
+                supporting[id(owner)] = owner
+        return rest, list(supporting.values())
+
+    def _piece_owner(self, read: tuple[TextBlock, str, str], stable: list[_Track]) -> _Track | None:
+        cfg = self.config
+        box, key = read[0].bbox, read[2]
+        best: _Track | None = None
+        for track in stable:
+            whole = track.emitted_key
+            if key == whole or len(key) > len(whole):
+                continue  # the whole line, or more than it: normal matching
+            if intersection_area(box, track.bbox) < cfg.piece_inside * max(box.area, 1):
+                continue
+            if key not in whole and fuzz.partial_ratio(key, whole) < cfg.dup_match * 100:
+                continue
+            if best is None or track.bbox.area < best.bbox.area:
+                best = track  # the tightest line that holds it
+        return best
 
     # ---- matching ------------------------------------------------------------------------
 

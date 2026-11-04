@@ -26,7 +26,7 @@ from gloss.services.monitors import (
     virtual_desktop,
 )
 
-DEFAULT_FPS_MAX = 4.0
+DEFAULT_FPS_MAX = 12.0
 DEFAULT_FIRST_FRAME_TIMEOUT_MS = 1500
 MAX_FPS = 240.0
 

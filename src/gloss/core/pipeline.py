@@ -301,6 +301,7 @@ class _Work:
     regions: list[Rect] | None
     scroll_dy: int = 0
     unchanged: bool = False
+    scroll_area: Rect | None = None
 
 
 class _Mailbox:
@@ -319,10 +320,24 @@ class _Mailbox:
             else:
                 regions = None if change.full else list(change.dirty)
                 dy = change.scrolls[0].dy if len(change.scrolls) == 1 else 0
+                area = change.scrolls[0].area if len(change.scrolls) == 1 else None
                 if len(change.scrolls) > 1:
                     regions = None
                 if old is None or old.unchanged:
-                    self._work = _Work(frame, regions, dy)
+                    self._work = _Work(frame, regions, dy, scroll_area=area)
+                elif (
+                    old.regions is not None
+                    and regions is not None
+                    and old.scroll_area is not None
+                    and old.scroll_area == area
+                    and old.frame.region == frame.region
+                ):
+                    # Two scrolls of one area: the older exposed bands moved with the newer shift.
+                    h, w = frame.image.shape[:2]
+                    bounds = Rect(0, 0, w, h)
+                    shifted = [_clip(r.translated(0, -dy), bounds) for r in old.regions]
+                    kept = [r for r in shifted if r is not None]
+                    self._work = _Work(frame, kept + regions, old.scroll_dy + dy, scroll_area=area)
                 elif (
                     old.regions is None
                     or regions is None
@@ -424,6 +439,7 @@ class Pipeline:
         self._bboxes: dict[str, Rect] = {}  # line_id -> desktop bbox, for lines on screen
         self._shown: dict[str, RenderItem] = {}  # line_id -> what was last shown
         self._latest_meta: FrameMeta | None = None
+        self._scrolled_at = float("-inf")  # timestamp of the newest frame moved by a scroll
         self._target = target
         self._target_serial = 0
         self._paused = False
@@ -545,7 +561,9 @@ class Pipeline:
             self._clock,
             self._stages["capture"].hangs,
         )
-        interval = 1.0 / cfg.capture.fps_max
+        busy_interval = 1.0 / cfg.capture.fps_max
+        idle_interval = 1.0 / cfg.capture.idle_fps
+        last_change = float("-inf")
         serial = -1
         target: CaptureTarget | None = None
         try:
@@ -595,7 +613,15 @@ class Pipeline:
                         frame = self._black_trial(chain, index, opener, black, detector) or frame
                 stage.health = worst(chain.health(), black.health())
                 if frame is not None:
-                    self._mailbox.post(frame, detector.detect(frame))
+                    change = detector.detect(frame)
+                    if change.changed:
+                        last_change = self._clock()
+                    if change.scrolls:
+                        self._follow_scroll(frame, change)
+                    self._mailbox.post(frame, change)
+                # Look often while the screen is changing, and rarely once it is still.
+                busy = self._clock() - last_change < cfg.capture.idle_after_s
+                interval = busy_interval if busy else idle_interval
                 self._stop.wait(max(0.0, interval - (self._clock() - started)))
         finally:
             chain.close()  # this worker's own adapters, even if it was given up on
@@ -699,17 +725,53 @@ class Pipeline:
             self._stages["ocr"].hangs,
         )
 
+    def _follow_scroll(self, frame: Frame, change: ChangeResult) -> None:
+        """Move shown lines with a detected scroll at once, before OCR confirms them."""
+        ox, oy = frame.region.x, frame.region.y
+        moved: list[RenderItem] = []
+        gone: list[str] = []
+        with self._lock:
+            for shift in change.scrolls:
+                area = shift.area.translated(ox, oy)
+                for line_id, bbox in list(self._bboxes.items()):
+                    cx, cy = bbox.x + bbox.w // 2, bbox.y + bbox.h // 2
+                    if not (area.x <= cx < area.right and area.y <= cy < area.bottom):
+                        continue
+                    new = bbox.translated(0, -shift.dy)
+                    if _clip(new, area) is None:
+                        gone.append(line_id)
+                        self._bboxes.pop(line_id, None)
+                        self._shown.pop(line_id, None)
+                        continue
+                    self._bboxes[line_id] = new
+                    shown = self._shown.get(line_id)
+                    if shown is not None:
+                        item = RenderItem(shown.result, new, shown.low_quality, shown.group_id)
+                        self._shown[line_id] = item
+                        moved.append(item)
+            self._scrolled_at = frame.timestamp
+            self._latest_meta = frame.meta
+            meta = self._latest_meta
+        if gone:
+            self._sink.remove_lines(gone)
+        if moved:
+            self._sink.show_results(moved, meta)
+
     def _publish(self, update: TrackerUpdate, frame: Frame) -> None:
         """Act on one tracker update. Called with ``self._lock`` held, on the OCR worker."""
-        self._latest_meta = frame.meta
+        stale = frame.timestamp < self._scrolled_at  # older than a scroll already shown
+        if not stale:
+            self._latest_meta = frame.meta
         ox, oy = frame.region.x, frame.region.y
+        threshold = self._config.render.move_threshold_px
         moved: list[RenderItem] = []
         for block in update.visible:
             if block.line_id is None:
                 continue
             bbox = block.bbox.translated(ox, oy)
-            if self._bboxes.get(block.line_id) == bbox:
-                continue
+            old = self._bboxes.get(block.line_id)
+            if old is not None and (stale or _settled(old, bbox, threshold)):
+                continue  # OCR jitter, or a position from before the scroll
             self._bboxes[block.line_id] = bbox
             shown = self._shown.get(block.line_id)
             if shown is not None:
@@ -841,6 +903,25 @@ class Pipeline:
                 for p in lost
             ]
             self._show(lost, failed)
+
+
+def _clip(rect: Rect, bounds: Rect) -> Rect | None:
+    x, y = max(rect.x, bounds.x), max(rect.y, bounds.y)
+    right, bottom = min(rect.right, bounds.right), min(rect.bottom, bounds.bottom)
+    if right <= x or bottom <= y:
+        return None
+    return Rect(x, y, right - x, bottom - y)
+
+
+def _settled(old: Rect, new: Rect, threshold_px: int) -> bool:
+    """True when ``new`` differs from ``old`` by no more than OCR jitter."""
+    limit = max(threshold_px, old.h // 4)
+    return (
+        abs(new.x - old.x) <= limit
+        and abs(new.y - old.y) <= limit
+        and abs(new.right - old.right) <= limit
+        and abs(new.bottom - old.bottom) <= limit
+    )
 
 
 def _target_opener(target: CaptureTarget) -> Callable[[CaptureSource], None]:
