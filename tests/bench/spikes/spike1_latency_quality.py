@@ -128,7 +128,7 @@ def main():
     for b in range(0, 100, 5):
         rows.append(run("batch5", [(k + 1, LINES[k][1]) for k in range(b, b + 5)]))
     Path(outdir, f"{name}.json").write_text(
-        json.dumps({"warmup": warm, "rows": rows}, ensure_ascii=False)
+        json.dumps({"warmup": warm, "rows": rows}, ensure_ascii=False), encoding="utf-8"
     )
     for kind in ("single", "batch5"):
         rr = [r for r in rows if r["kind"] == kind and "error" not in r]

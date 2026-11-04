@@ -13,7 +13,10 @@ Privacy exception: if the file exists but the user's privacy choice cannot be tr
 first run and keeps the default. See ``_check_privacy_intent`` and ADR-0003.
 
 ``adapters`` tables are free-form on purpose. Adding an adapter must not change this schema,
-so each adapter checks its own table and raises ``PermanentError`` if it is wrong.
+so each adapter checks its own table and raises ``PermanentError`` if it is wrong. Their keys
+are still all listed, with defaults, in ``default.toml`` (ADR-0005). Shared stage settings,
+such as ``capture.fps_max``, reach adapters through ``adapter_settings`` and are not repeated
+in adapter tables, so each setting has one knob.
 """
 
 from __future__ import annotations
@@ -47,6 +50,7 @@ from gloss.core.config_migrations import (
     ConfigMigrationError,
     migrate,
 )
+from gloss.core.contracts import Rect
 
 _HOTKEY = re.compile(r"^(?:(?:ctrl|alt|shift|win)\+)+(?:[a-z0-9]|f(?:[1-9]|1[0-9]|2[0-4]))$")
 
@@ -54,6 +58,23 @@ _HOTKEY = re.compile(r"^(?:(?:ctrl|alt|shift|win)\+)+(?:[a-z0-9]|f(?:[1-9]|1[0-9
 def _check_hotkey(value: str) -> str:
     if not _HOTKEY.fullmatch(value):
         raise ValueError("hotkey must be one or more modifiers and a key, joined by +")
+    return value
+
+
+_REGION_LIMIT = 1_000_000  # desktop pixels; far beyond any real monitor layout
+
+
+def _check_region(value: list[int]) -> list[int]:
+    """``[]`` (no saved area) or ``[x, y, w, h]`` in desktop pixels. x and y may be negative,
+    because a monitor left of or above the primary one has negative coordinates."""
+    if not value:
+        return value
+    if len(value) != 4:
+        raise ValueError("region must be [] or [x, y, w, h]")
+    if value[2] <= 0 or value[3] <= 0:
+        raise ValueError("region width and height must be above 0")
+    if any(abs(v) > _REGION_LIMIT for v in value):
+        raise ValueError(f"region values must be within {_REGION_LIMIT} pixels")
     return value
 
 
@@ -73,6 +94,7 @@ PositiveInt = Annotated[int, Field(gt=0, strict=True)]
 NonNegativeInt = Annotated[int, Field(ge=0, strict=True)]
 PositiveFloat = Annotated[Number, Field(gt=0)]
 NonNegativeFloat = Annotated[Number, Field(ge=0)]
+SavedRegion = Annotated[list[Annotated[int, Field(strict=True)]], AfterValidator(_check_region)]
 AdapterTables = dict[str, dict[str, Any]]
 
 
@@ -102,6 +124,7 @@ class CaptureConfig(Section):
     tile_size: PositiveInt
     black_frame_reads: PositiveInt
     black_frame_max_mean: NonNegativeFloat
+    region: SavedRegion
     sources: CaptureSources
     adapters: AdapterTables
 
@@ -109,15 +132,23 @@ class CaptureConfig(Section):
     def active(self) -> SourceChoice:
         return getattr(self.sources, self.mode)
 
+    @property
+    def saved_region(self) -> Rect | None:
+        """The last chosen area, or None. Pass it to ``services.region.restore_region`` first,
+        because the monitors may have changed since it was saved."""
+        return Rect(*self.region) if self.region else None
+
 
 class OCRConfig(Section):
     engine: AdapterName
     fallbacks: list[AdapterName]
+    low_quality_engine: AdapterName
     profile: Literal["fast", "accurate"]
     languages: list[LangCode] = Field(min_length=1)
     min_confidence: Number = Field(ge=0, le=1)
     stable_reads: PositiveInt
     dedupe_window_s: PositiveFloat
+    dedupe_max_lines: PositiveInt
     adapters: AdapterTables
 
 
@@ -193,6 +224,7 @@ class PrivacyConfig(Section):
 class StorageConfig(Section):
     database: str = Field(min_length=1)
     glossary_path: str = Field(min_length=1)
+    cache_max_entries: PositiveInt
 
 
 class GlossConfig(Section):

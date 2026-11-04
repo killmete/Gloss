@@ -32,6 +32,9 @@ secrets/
 logs/
 debug_frames/
 
+# Downloaded OCR models (large; fetched per pinned hash, never committed)
+models/
+
 # Spike output (spend records and raw API results)
 tests/bench/spikes/out*/
 tests/bench/spikes/**/spend.txt

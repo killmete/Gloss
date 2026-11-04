@@ -5,7 +5,8 @@ config_version = 1
 
 [capture]
 mode = "region"              # monitor | region | window
-fps_max = 4
+fps_max = 4                  # the only frame-rate knob; passed to every capture adapter
+region = []                  # last chosen area [x, y, w, h] in desktop pixels; [] = none yet
 tile_size = 64               # change-detection tile, in pixels
 black_frame_reads = 8        # near-black frames in a row before a trial grab from the next source
 black_frame_max_mean = 4.0   # a frame's mean brightness (0-255) at or below this counts as black
@@ -23,24 +24,42 @@ fallbacks = ["wgc"]
 source = "wgc"
 fallbacks = ["mss"]
 
+# Adapter tables are passed to the adapter as they are; each adapter checks its own keys.
+# Shared values (capture.fps_max here) are passed in too. Do not repeat them in these tables.
 [capture.adapters.mss]
+# Nothing of its own: mss grabs on demand, so it has no first-frame wait.
 
 [capture.adapters.wgc]
+first_frame_timeout_ms = 1500  # how long to wait for Windows to deliver the first frame (0-60000)
 
 [ocr]
 engine = "rapidocr"
 fallbacks = []               # Empty on purpose. See ADR-0001 section 2.
+low_quality_engine = "windows"  # used when the user turns on low-quality reading from the tray;
+                                # never an automatic fallback
 profile = "fast"             # fast (v6 small) | accurate (v6 medium, needs more RAM)
 languages = ["zh", "en", "ja"]
 min_confidence = 0.5         # the benchmarked value; 0.6 is not yet proven safe
 stable_reads = 2             # unchanged pixels on the next frame count as a read
 dedupe_window_s = 30.0
+dedupe_max_lines = 2000      # recent lines remembered for de-duplication (memory limit)
 
+# Shared values (ocr.languages, ocr.profile, ocr.min_confidence) are passed to the engine.
 [ocr.adapters.rapidocr]
 det_limit_type = "max"       # the library's default, "min", broke small crops
-det_limit_side_len = 960
+det_limit_side_len = 960     # shrink only crops wider or taller than this. See ADR-0005.
+max_side_len = 2000          # largest image side the engine accepts (256-8192)
 intra_op_threads = 2
 inter_op_threads = 1
+use_cls = false              # rotated-text classifier; needs an extra model file
+region_margin_px = 16        # extra pixels read around each changed area (0-256)
+model_dir = ""               # "" = the gitignored models/rapidocr folder (or the app bundle)
+skip_translation_langs = []  # OCR languages never sent for translation; the text tracker
+                             # already skips translate.target_lang, so leave this empty
+upscale = 1.0                # enlarge small crops by this factor (1.0-4.0); 1.0 = never
+upscale_below_px = 0         # ... only crops shorter than this many pixels
+invert_dark = false          # flip light-on-dark text to dark-on-light before reading
+dark_luma = 90.0             # mean brightness (0-255) below which a crop counts as dark
 
 [ocr.adapters.rapidocr.profiles.fast]
 ocr_version = "PP-OCRv6"
@@ -52,6 +71,11 @@ model_type = "medium"
 
 [ocr.adapters.windows]
 # Registered, but never an automatic fallback.
+region_margin_px = 16
+skip_translation_langs = []
+upscale = 1.0
+upscale_below_px = 0
+invert_dark = false
 
 [translate]
 provider = "anthropic"
@@ -101,10 +125,20 @@ beam_size = 2
 mode = "panel"               # panel | overlay | both
 font_size = 14
 
+# Shared value render.font_size is passed to both renderers. A bad value here is ignored
+# and the renderer uses its built-in default, so the panel always opens.
 [render.adapters.panel]
+width = 420                  # first-run size in pixels; after that the saved size is used
+height = 560
+history_max = 500            # lines kept in the list
+max_chars = 1000             # longer lines are cut with "..."
+original_scale = 0.75        # original text size as a share of font_size (0.3-1.0)
+state_file = ""              # "" = %APPDATA%/Gloss/ui_state.ini (window position and size)
 
 [render.adapters.overlay]
 topmost_reassert_ms = 2000
+max_width_ratio = 0.5        # widest a label may be, as a share of the screen width
+linger_s = 0                 # seconds a label stays after its text leaves; 0 = remove at once
 
 [hotkeys]
 toggle = "ctrl+alt+t"
@@ -131,3 +165,4 @@ debug_logging = false        # true may write chat text to logs
 [storage]
 database = "gloss.sqlite3"   # translation cache and spend records, inside %APPDATA%/Gloss
 glossary_path = "docs/glossary/zh_gaming.yaml"
+cache_max_entries = 50000    # translation cache rows kept; the oldest-used are dropped first
