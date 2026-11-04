@@ -1,6 +1,6 @@
 # ADR-0002: Contracts version 1.0.0
 
-- Status: **Proposed**, pending user approval at Checkpoint 2
+- Status: **Accepted** 2026-11-04. The user approved at Checkpoint 2 ("Go").
 - Date: 2026-10-31
 - Code: `src/gloss/core/contracts/`
 

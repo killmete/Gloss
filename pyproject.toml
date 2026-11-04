@@ -17,6 +17,13 @@ dependencies = [
     "rapidocr==3.10.0",
     "tomli-w>=1.2.0",
     "windows-capture==2.0.1",
+    "winrt-runtime==4.0.3",
+    "winrt-windows-foundation==4!10.0.28000.2705",
+    "winrt-windows-foundation-collections==4!10.0.28000.2705",
+    "winrt-windows-globalization==4!10.0.28000.2705",
+    "winrt-windows-graphics-imaging==4!10.0.28000.2705",
+    "winrt-windows-media-ocr==4!10.0.28000.2705",
+    "winrt-windows-storage-streams==4!10.0.28000.2705",
 ]
 
 [project.scripts]

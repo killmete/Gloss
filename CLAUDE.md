@@ -3,7 +3,7 @@
 Windows desktop app that watches the user's monitor (or a region of it), OCRs any
 foreign-language text that appears, and shows an English translation in near real time.
 Primary use: Chinese gaming/companion platforms (chat rooms, order cards, profiles),
-but source language is auto-detected (zh, ja, ko, th, ru, ...).
+but source language is auto-detected among zh, en and ja for the MVP.
 
 The full product spec, architecture and acceptance criteria are in `docs/SPEC.md`.
 Read it before doing any design or implementation work.
@@ -48,15 +48,17 @@ Read it before doing any design or implementation work.
     its port (`tests/contract/`). A phase is not done until `uv run pytest` is green and
     the `safeguard` agent returns PASS.
 
-## Stack (default — may be revised only via ADR after Phase 1 research + user approval)
+## Stack (accepted in ADR-0001; may be revised only via ADR + user approval)
 - Python 3.12, `uv` for env/lockfile, `ruff` for lint/format, `pytest`.
-- PySide6 for tray, settings window, side panel and click-through overlay.
-- Capture: `mss` baseline; Windows Graphics Capture / DXGI adapter if research shows a need.
-- OCR: RapidOCR (ONNX Runtime, CPU) primary; Windows.Media.Ocr adapter as alternative.
-- Translation: Anthropic API (fast Haiku-class model by default) with glossary + chat
-  context; a second provider (e.g. DeepL) as fallback; `null` translator for offline.
+- PySide6-Essentials for tray, settings window, side panel and click-through overlay.
+- Capture: `mss` for monitor and region; `windows-capture` (Windows Graphics Capture) for window;
+  source chosen per mode.
+- OCR: RapidOCR (ONNX Runtime, CPU), PP-OCRv6 small by default with v6 medium as a selectable
+  profile; Windows.Media.Ocr is manual low-quality mode only, never an automatic fallback.
+- Translation: Anthropic API (Haiku-class model by default) with glossary + chat context;
+  optional offline `quickmt` pack; `null` translator as last resort.
 - Cache: SQLite (text hash → translation). Config: TOML validated with pydantic.
-- Packaging: one-folder or one-file Windows build (PyInstaller or Nuitka, per research).
+- Packaging: PyInstaller one-folder Windows build, no UPX.
 
 ## Repository layout
 ```
