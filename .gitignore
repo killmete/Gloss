@@ -49,3 +49,4 @@ tests/golden/images/*
 !tests/golden/images/README.md
 tests/golden/expected/*
 !tests/golden/expected/.gitkeep
+tests/bench/results/

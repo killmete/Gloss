@@ -52,6 +52,7 @@ testpaths = ["tests"]
 pythonpath = ["tests"]
 addopts = "--strict-markers -m 'not golden and not bench and not e2e'"
 markers = [
+    "drill: failure drills (no network, bad key, missing model, hung stage); fast, in the default run",
     "contract: adapter contract suites in tests/contract/ (fast, part of the default run)",
     "golden: accuracy checks on real screenshots (local only)",
     "bench: latency, CPU and RAM benchmarks",

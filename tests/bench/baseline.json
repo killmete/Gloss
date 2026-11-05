@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-05",
+  "machine": {
+    "cpu_model": "AMD Ryzen 9 9950X3D 16-Core Processor",
+    "physical_cores": 16,
+    "logical_cores": 32,
+    "ram_gb": 15,
+    "os": "Windows 11",
+    "python": "3.12.16"
+  },
+  "metrics": {
+    "cpu_busy_pct": {
+      "value": 20.31,
+      "unit": "pct"
+    },
+    "cpu_idle_pct": {
+      "value": 1.82,
+      "unit": "pct"
+    },
+    "detect_chat_scroll_ms": {
+      "value": 15.0,
+      "unit": "ms"
+    },
+    "detect_chat_static_ms": {
+      "value": 1.56,
+      "unit": "ms"
+    },
+    "detect_noise_scroll_ms": {
+      "value": 29.22,
+      "unit": "ms"
+    },
+    "e2e_line_p50_ms": {
+      "value": 335.5,
+      "unit": "ms"
+    },
+    "e2e_line_p95_ms": {
+      "value": 360.0,
+      "unit": "ms"
+    },
+    "ocr_band_p50_ms": {
+      "value": 39.7,
+      "unit": "ms"
+    },
+    "ocr_band_p95_ms": {
+      "value": 45.1,
+      "unit": "ms"
+    },
+    "ocr_page_p50_ms": {
+      "value": 632.51,
+      "unit": "ms"
+    },
+    "ocr_page_p95_ms": {
+      "value": 654.61,
+      "unit": "ms"
+    },
+    "ocr_panel_p50_ms": {
+      "value": 247.0,
+      "unit": "ms"
+    },
+    "ocr_panel_p95_ms": {
+      "value": 260.53,
+      "unit": "ms"
+    },
+    "ram_peak_mb": {
+      "value": 303.84,
+      "unit": "mb"
+    },
+    "scroll_boxes_p50_ms": {
+      "value": 250.0,
+      "unit": "ms"
+    },
+    "scroll_boxes_p95_ms": {
+      "value": 266.0,
+      "unit": "ms"
+    },
+    "scroll_line_p50_ms": {
+      "value": 312.5,
+      "unit": "ms"
+    },
+    "scroll_line_p95_ms": {
+      "value": 344.0,
+      "unit": "ms"
+    }
+  }
+}

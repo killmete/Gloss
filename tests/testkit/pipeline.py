@@ -124,6 +124,7 @@ def fast_config(
                     "ocr_timeout_ms": timeout_ms,
                     "translate_timeout_ms": translate_timeout_ms or timeout_ms,
                     "retry_max": 0,
+                    "retry_max_delay_ms": 100,  # a crashed worker's restart pause
                     "queue_size": queue_size,
                     "breaker_failures": breaker_failures,
                 }

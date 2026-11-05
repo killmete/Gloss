@@ -146,7 +146,7 @@ def test_wgc_hands_out_the_cached_frame_when_nothing_changed():
         try:
             first = grab_until(adapter, lambda f: f.fresh)
             assert first is not None and first.fresh
-            time.sleep(0.8)  # a static window delivers nothing more
+            time.sleep(0.4)  # a static window delivers nothing more
             seen = [adapter.grab() for _ in range(3)]
             repeated = [f for f in seen if f is not None and not f.fresh]
             assert repeated, "a static window should repeat its last frame with fresh=False"

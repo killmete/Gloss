@@ -922,15 +922,16 @@ class Pipeline:
                 watch.end()
             stage.health = service.health()
             while self._current("translate", generation):
-                if self._retry_translation:
-                    self._retry_translation = False
-                    service.retry_unavailable()
                 batch = collect_batch(
                     self._lines,
                     t.batch_max_lines,
                     t.batch_max_wait_ms / 1000,
                     first_timeout_s=_IDLE_WAIT_S,
                 )
+                # Checked after the wait, so a key fixed while we waited applies to this batch.
+                if self._retry_translation:
+                    self._retry_translation = False
+                    service.retry_unavailable()
                 if not batch:
                     continue
                 items = [TranslationItem(p.line_id, p.text, p.low_quality) for p in batch]

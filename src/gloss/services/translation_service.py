@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import logging
 import random
+import threading
 import time
 from collections import deque
 from collections.abc import Callable, Sequence
@@ -88,6 +89,8 @@ class ServiceSettings:
     retry: RetryPolicy
     breaker_failures: int
     breaker_cooldown_s: float
+    # How long one translator may take to start. None means no limit (direct use in tests).
+    open_timeout_s: float | None = None
 
     @classmethod
     def from_config(cls, config: Any) -> ServiceSettings:
@@ -102,6 +105,9 @@ class ServiceSettings:
             retry=RetryPolicy(r.retry_max, r.retry_base_delay_ms, r.retry_max_delay_ms),
             breaker_failures=r.breaker_failures,
             breaker_cooldown_s=r.breaker_cooldown_s,
+            # Half the translate timeout, so the service answers before the pipeline watchdog
+            # (which allows at least one full translate timeout) gives up on the worker.
+            open_timeout_s=r.translate_timeout_ms / 2000,
         )
 
 
@@ -141,6 +147,9 @@ class _Provider:
     disabled: str | None = None
     unavailable_until: float = 0.0
     unavailable_reason: str = ""
+    opener: threading.Thread | None = (
+        None  # a start-up call that ran out of time, maybe still going
+    )
 
     @property
     def name(self) -> str:
@@ -432,7 +441,7 @@ class TranslationService:
         if p.opened:
             return True
         try:
-            p.translator.open()
+            self._open_with_deadline(p)
         except AdapterUnavailable as exc:
             self._mark_unavailable(p, str(exc) or f"{p.name} is not available")
         except PermanentError as exc:
@@ -443,6 +452,42 @@ class TranslationService:
         else:
             p.opened = True
         return p.opened
+
+    def _open_with_deadline(self, p: _Provider) -> None:
+        """Run ``translator.open()`` but give up after ``open_timeout_s``.
+
+        A call that runs out of time counts as ``AdapterUnavailable``. It is abandoned: its
+        late result is ignored, and no second ``open()`` starts on that translator while it
+        is still running.
+        """
+        limit = self._s.open_timeout_s
+        if limit is None:
+            p.translator.open()
+            return
+        if p.opener is not None and p.opener.is_alive():
+            raise AdapterUnavailable(self._slow_start_reason(p))
+        p.opener = None
+        failure: list[BaseException] = []
+
+        def run() -> None:
+            try:
+                p.translator.open()
+            except BaseException as exc:  # Handed to the caller, which sorts it out.
+                failure.append(exc)
+
+        worker = threading.Thread(target=run, name=f"open-{p.name}", daemon=True)
+        worker.start()
+        worker.join(limit)
+        if worker.is_alive():
+            p.opener = worker
+            log.warning("Translator %s did not start within %.1f s; skipping it", p.name, limit)
+            raise AdapterUnavailable(self._slow_start_reason(p))
+        if failure:
+            raise failure[0]
+
+    @staticmethod
+    def _slow_start_reason(p: _Provider) -> str:
+        return f"{p.name} did not start in time. Check your internet connection and retry."
 
     def _mark_unavailable(self, p: _Provider, reason: str) -> None:
         p.unavailable_until = self._clock() + self._s.breaker_cooldown_s
