@@ -174,6 +174,7 @@ class OCRConfig(Section):
     languages: list[LangCode] = Field(min_length=1)
     min_confidence: Number = Field(ge=0, le=1)
     stable_reads: PositiveInt
+    stable_reads_after_scroll: PositiveInt
     dedupe_window_s: PositiveFloat
     dedupe_max_lines: PositiveInt
     piece_inside: Number = Field(ge=0, le=1)
@@ -181,6 +182,14 @@ class OCRConfig(Section):
     animated_text_share: Number = Field(ge=0, le=1)
     animated_text_max_chars: NonNegativeInt
     adapters: AdapterTables
+
+    @field_validator("stable_reads_after_scroll")
+    @classmethod
+    def _scroll_reads_within_stable_reads(cls, value: int, info: ValidationInfo) -> int:
+        stable = info.data.get("stable_reads")  # absent if stable_reads itself was invalid
+        if stable is not None and value > stable:
+            raise ValueError(f"stable_reads_after_scroll must not be above stable_reads ({stable})")
+        return value
 
 
 class ModelPrice(Section):

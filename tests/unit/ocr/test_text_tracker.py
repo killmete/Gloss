@@ -702,3 +702,33 @@ def test_a_returning_line_is_in_read_when_read_again(now):
     results = [t.update([blk(text)], now=now()) for _ in range(2)]
     line_id = first.visible[0].line_id
     assert results[-1].new == () and line_id in results[-1].read
+
+
+# ---- per-call stable_reads ----------------------------------------------------------------
+
+
+def test_stable_reads_override_emits_after_one_read(now):
+    t = tracker(stable_reads=2)
+    result = t.update([blk("滚动后露出的新消息")], now=now(), stable_reads=1)
+    assert len(result.new) == 1 and result.new[0].line_id in result.read
+
+
+def test_without_the_override_the_config_still_applies(now):
+    t = tracker(stable_reads=2)
+    assert t.update([blk("滚动后露出的新消息")], now=now()).new == ()
+
+
+def test_returning_line_read_once_with_override_keeps_its_id(now):
+    t = tracker(stable_reads=2)
+    for _ in range(2):
+        first = t.update([blk("这一行会离开然后回来")], now=now())
+    line_id = first.visible[0].line_id
+    for _ in range(3):
+        t.update([], now=now(), scanned=None)
+    back = t.update([blk("这一行会离开然后回来")], now=now(), stable_reads=1)
+    assert back.new == () and back.visible[0].line_id == line_id and line_id in back.read
+
+
+def test_stable_reads_override_below_one_is_refused(now):
+    with pytest.raises(ValueError):
+        tracker().update([], now=now(), stable_reads=0)

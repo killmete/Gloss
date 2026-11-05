@@ -167,6 +167,9 @@ class _Run:
     outcomes: dict[str, _Outcome] = field(default_factory=dict)
 
 
+LEDGER_RESET_NOTE = "Spending record was reset after damage; this month's total restarted."
+
+
 class TranslationService:
     def __init__(
         self,
@@ -292,6 +295,8 @@ class TranslationService:
         if budget is not None and budget.level == "warn":
             share = int(budget.month_share * 100)
             return f"{share}% of the monthly translation budget is used.", "ok"
+        if self._budget is not None and self._budget.ledger_recovered:
+            return LEDGER_RESET_NOTE, "degraded"
         return "", "ok"
 
     # ---- translating --------------------------------------------------------------------

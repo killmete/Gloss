@@ -1,7 +1,7 @@
 """Collects lines into a batch: up to ``max_lines``, or until ``max_wait`` after the first line.
 
 Used by the translate stage worker. The worker blocks for the first line, then keeps taking
-lines for at most ``max_wait_s`` (``translate.batch_max_wait_ms``, 200 ms by default) so a
+lines for at most ``max_wait_s`` (``translate.batch_max_wait_ms``, 60 ms by default) so a
 burst of chat lines goes out as one request, while a single line is delayed very little.
 """
 

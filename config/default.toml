@@ -57,6 +57,7 @@ profile = "fast"             # fast (v6 small) | accurate (v6 medium, needs more
 languages = ["zh", "en", "ja"]
 min_confidence = 0.5         # the benchmarked value; 0.6 is not yet proven safe
 stable_reads = 2             # unchanged pixels on the next frame count as a read
+stable_reads_after_scroll = 1  # reads needed for a line from a just-scrolled frame (1 to stable_reads)
 dedupe_window_s = 30.0
 dedupe_max_lines = 2000      # recent lines remembered for de-duplication (memory limit)
 piece_inside = 0.8           # share (0-1) of a read's box inside a known line for it to count
@@ -103,7 +104,7 @@ provider = "anthropic"
 fallbacks = ["null"]         # Add "quickmt" before "null" if the offline pack is installed.
 target_lang = "en"
 batch_max_lines = 20
-batch_max_wait_ms = 200
+batch_max_wait_ms = 60       # short: a scroll already queues its new lines together
 context_lines = 10
 redact_digit_runs = 8        # redact runs of this many digits or more before sending
 

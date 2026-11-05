@@ -90,7 +90,7 @@ End-to-end arithmetic for one new line, with a 20-line panel on this PC:
 |---|---|---|---|
 | Wait for next capture at 4 fps | 125 ms | 125 ms | 125 ms |
 | OCR | 800 ms | 400 ms | 150 ms |
-| Batch wait | 400 ms | 200 ms | 200 ms |
+| Batch wait | 400 ms | 200 ms | 200 ms (60 ms since the ADR-0005 addendum) |
 | Show on screen (assumed) | 50 ms | 50 ms | 50 ms |
 | **Left for Claude within 1.5 s** | **125 ms** | **725 ms** | **975 ms** |
 

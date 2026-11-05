@@ -81,6 +81,11 @@ class BudgetGuard:
         self._warn_at = warn_at
         self._clock = clock
 
+    @property
+    def ledger_recovered(self) -> bool:
+        """True once the ledger file was damaged and restarted (this month's total began at 0)."""
+        return bool(getattr(self._ledger, "recovered", 0))
+
     def record(self, usage: TokenUsage) -> float:
         """Price one call, write it to the ledger, and return its cost in dollars."""
         cost = cost_of(usage, self._price_for(usage.model))

@@ -356,3 +356,22 @@ def test_a_new_line_read_from_a_frame_older_than_a_scroll_is_shown_where_it_is_n
     ]
     assert ORIGIN[1] + 400 not in after  # the late read never puts it back where it was
     assert _line_items(r, "新来的一条消息")[-1].bbox.y == ORIGIN[1] + 400 - DY
+
+
+def test_reads_of_a_frame_that_just_scrolled_need_fewer_confirming_reads(rig):
+    r, cap, ocr = _scroll_rig(rig)
+    p = r.start()
+    wait_until(lambda: len(r.sink.shown()) >= 3, what="three translated lines")
+    calls: list[tuple[int | None, bool]] = []
+    real = p._tracker.update
+
+    def spy(blocks, *, now, scanned=None, stable_reads=None):
+        calls.append((stable_reads, bool(blocks)))
+        return real(blocks, now=now, scanned=scanned, stable_reads=stable_reads)
+
+    p._tracker.update = spy
+    cap.image = SCROLLED
+    wait_until(lambda: any(s is not None for s, _ in calls), what="the read of the scrolled frame")
+    assert (r.config.ocr.stable_reads_after_scroll, True) in calls
+    cap.image = PATCHED  # an ordinary change: the normal number of reads again
+    wait_until(lambda: calls[-1][0] is None, what="an ordinary read")

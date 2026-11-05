@@ -186,13 +186,17 @@ class TextTracker:
         *,
         now: float,
         scanned: Sequence[Rect] | None = None,
+        stable_reads: int | None = None,
     ) -> TrackerUpdate:
         """Feed one OCR result.
 
         ``scanned`` are the frame regions OCR read (None means the whole frame). Known lines
         outside them are assumed unchanged: they are neither marked missing nor re-read, and a
-        pending one earns a read.
+        pending one earns a read. ``stable_reads`` replaces the configured value for the lines
+        read in this call only (None: use the config).
         """
+        if stable_reads is not None and stable_reads < 1:
+            raise ValueError("stable_reads must be at least 1")
         before = self._live_ids()
         reads = [r for r in (self._read(b) for b in blocks) if r is not None]
         reads = self._collapse_reads(reads)
@@ -217,7 +221,7 @@ class TextTracker:
                 track.bbox = box
                 touched.append(track)
         self._age(set(map(id, touched)), scanned, now)
-        new = self._stabilise(now)
+        new = self._stabilise(now, set(map(id, touched)), stable_reads)
         read = frozenset(t.line_id for t in touched if t.stable and t.line_id)
         return self._result(new, before, now, read)
 
@@ -476,12 +480,11 @@ class TextTracker:
 
     # ---- becoming stable -----------------------------------------------------------------
 
-    def _ready(self, track: _Track) -> bool:
-        cfg = self.config
-        if track.lead().count >= cfg.stable_reads:
+    def _ready(self, track: _Track, need: int) -> bool:
+        if track.lead().count >= need:
             return True
         # A line that flickers between readings must not wait forever.
-        return track.reads >= 2 * cfg.stable_reads + 2
+        return track.reads >= 2 * need + 2
 
     def _revision(self, track: _Track) -> _Variant | None:
         """For an emitted line: a different text that has now been read stably, if any."""
@@ -493,7 +496,7 @@ class TextTracker:
                 return variant
         return None
 
-    def _stabilise(self, now: float) -> list[_Track]:
+    def _stabilise(self, now: float, touched: set[int], override: int | None) -> list[_Track]:
         """Promote tracks that became stable. Return those that are genuinely new lines."""
         new: list[_Track] = []
         for track in self._tracks:
@@ -505,7 +508,12 @@ class TextTracker:
                 track.stable = False
                 track.line_id = None
                 track.group = None
-            if not track.variants or not self._ready(track):
+            need = (
+                override
+                if override is not None and id(track) in touched
+                else self.config.stable_reads
+            )
+            if not track.variants or not self._ready(track, need):
                 continue
             lead = track.lead()
             track.stable = True

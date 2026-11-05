@@ -196,13 +196,14 @@ profile = "fast"          # fast | accurate
 languages = ["zh", "en", "ja"]
 min_confidence = 0.5
 stable_reads = 2
+stable_reads_after_scroll = 1  # reads needed after an exact scroll (1 to stable_reads)
 
 [translate]
 provider = "anthropic"
 fallbacks = ["null"]      # add "quickmt" before "null" if the offline pack is installed
 target_lang = "en"
 batch_max_lines = 20
-batch_max_wait_ms = 200
+batch_max_wait_ms = 60
 context_lines = 10
 redact_digit_runs = 8     # redact sequences of ≥ 8 digits before sending
 

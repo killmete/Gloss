@@ -744,7 +744,12 @@ class Pipeline:
                         self._tracker.scroll(-work.scroll_dy, frame=Rect(0, 0, w, h))
                     scanned = regions
                     blocks = self._without_animated_marks(blocks)
-                    update = self._tracker.update(blocks, now=self._clock(), scanned=scanned)
+                    # A frame that just scrolled is an exact shift of drawn content, so the
+                    # text it reveals is not half drawn: fewer confirming reads are needed.
+                    reads = self._config.ocr.stable_reads_after_scroll if work.scroll_dy else None
+                    update = self._tracker.update(
+                        blocks, now=self._clock(), scanned=scanned, stable_reads=reads
+                    )
                     self._publish(update, work.frame)
         finally:
             if chain is not None:

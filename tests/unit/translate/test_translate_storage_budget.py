@@ -479,4 +479,4 @@ def test_empty_queue_with_a_timeout_returns_an_empty_batch():
 
 
 def test_default_batch_settings_come_from_config():
-    assert CONFIG.translate.batch_max_wait_ms == 200 and CONFIG.translate.batch_max_lines == 20
+    assert CONFIG.translate.batch_max_wait_ms == 60 and CONFIG.translate.batch_max_lines == 20

@@ -327,6 +327,7 @@ def test_a_user_config_without_the_new_keys_loads_quietly(tmp_path):
     assert loaded.config.ocr.piece_min_chars == CONFIG.ocr.piece_min_chars
     assert loaded.config.ocr.animated_text_share == CONFIG.ocr.animated_text_share
     assert loaded.config.ocr.animated_text_max_chars == CONFIG.ocr.animated_text_max_chars
+    assert loaded.config.ocr.stable_reads_after_scroll == CONFIG.ocr.stable_reads_after_scroll
 
 
 def test_animated_text_defaults_are_the_agreed_values():
@@ -439,3 +440,27 @@ def test_the_settings_window_cannot_save_min_changes_above_the_window(tmp_path):
             {"capture": {"animated_window": 3, "animated_min_changes": 5}}, user_path=user
         )
     assert not user.exists()
+
+
+def test_scroll_and_batch_speed_defaults_are_the_agreed_values():
+    # No code default: the pipeline passes stable_reads_after_scroll per call (ADR-0005 addendum).
+    assert CONFIG.ocr.stable_reads_after_scroll == 1
+    assert 1 <= CONFIG.ocr.stable_reads_after_scroll <= CONFIG.ocr.stable_reads
+    assert CONFIG.translate.batch_max_wait_ms == 60
+
+
+def test_scroll_reads_may_equal_stable_reads(tmp_path):
+    user = _write(
+        tmp_path / "config.toml", "[ocr]\nstable_reads = 3\nstable_reads_after_scroll = 3\n"
+    )
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == ()
+    assert loaded.config.ocr.stable_reads_after_scroll == 3
+
+
+@pytest.mark.parametrize("value", ["0", "1.5", "true", "3"])
+def test_bad_scroll_reads_warn_and_use_the_default(tmp_path, value):
+    user = _write(tmp_path / "config.toml", f"[ocr]\nstable_reads_after_scroll = {value}\n")
+    loaded = load_config(user_path=user)
+    assert loaded.config.ocr.stable_reads_after_scroll == CONFIG.ocr.stable_reads_after_scroll
+    assert any("ocr.stable_reads_after_scroll" in w for w in loaded.warnings), loaded.warnings
