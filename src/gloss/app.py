@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from gloss.services.dpi import ensure_per_monitor_v2
@@ -133,10 +134,33 @@ def _setup_logging(debug: bool) -> None:
     )
 
 
+def claim_single_instance(folder: Path) -> Any | None:
+    """Hold a lock file so only one Gloss runs per user. None means another one is running.
+
+    Two copies would each draw an overlay, translate the same lines twice and keep the
+    database open so neither can repair it. A lock left by a crashed copy is taken over.
+    """
+    from PySide6.QtCore import QLockFile
+
+    lock = QLockFile(str(folder / "gloss.lock"))
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        log.warning("Could not create the settings folder; carrying on without the lock")
+        return lock
+    lock.setStaleLockTime(0)  # only a dead owner's lock is stale, however old
+    if lock.tryLock(0):
+        return lock
+    if lock.error() == QLockFile.LockError.LockFailedError:
+        return None
+    log.warning("Could not create the single-instance lock; carrying on without it")
+    return lock
+
+
 def main() -> int:
     awareness = ensure_per_monitor_v2()  # before Qt or mss load
 
-    from gloss.core.config import load_config
+    from gloss.core.config import load_config, user_config_path
     from gloss.core.pipeline import Pipeline
     from gloss.core.registry import default_registry, discover
     from gloss.services.secrets import KeyringSecretStore
@@ -151,8 +175,19 @@ def main() -> int:
     for rejection in default_registry.rejected():
         log.warning("Adapter %s/%s refused: %s", rejection.port, rejection.name, rejection.reason)
 
-    secrets = KeyringSecretStore()
     app = ensure_app()
+    instance = claim_single_instance(user_config_path().parent)
+    if instance is None:
+        from PySide6.QtWidgets import QMessageBox
+
+        QMessageBox.information(
+            None,
+            "Gloss",
+            "Gloss is already running. Look for its icon in the system tray "
+            "(the ^ arrow at the bottom right of the screen).",
+        )
+        return 0
+    secrets = KeyringSecretStore()
     app.setQuitOnLastWindowClosed(False)  # the tray keeps running with no window open
     shell = GlossShell(
         loaded, secrets=secrets, key_test=_key_test(loaded.config, default_registry, secrets)
@@ -201,6 +236,7 @@ def main() -> int:
         started = time.monotonic()
         state["pipeline"].stop()
         shell.shutdown()
+        instance.unlock()
         log.debug("Shut down in %.1f s", time.monotonic() - started)
 
 

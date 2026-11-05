@@ -174,6 +174,10 @@ class TextTracker:
         self._tracks: list[_Track] = []
         # key -> (line_id, last time it was on screen or emitted), oldest first
         self._seen: OrderedDict[str, tuple[str, float]] = OrderedDict()
+        # lines that left the screen: (key, line_id, last box, time), oldest first. The box is
+        # shifted by scroll() like a live line's, so a line that flickers away and back at the
+        # same spot (a fading badge) gets its old id even when it is too short to be de-duped.
+        self._gone: list[tuple[str, str, Rect, float]] = []
         self._next_line = 1
         self._next_group = 1
         self._left: set[str] = set()  # ids removed by scroll(), reported on the next result
@@ -239,6 +243,7 @@ class TextTracker:
         """
         for track in self._tracks:
             track.bbox = track.bbox.translated(dx, dy)
+        self._gone = [(k, i, b.translated(dx, dy), t) for k, i, b, t in self._gone]
         if frame is None:
             return
         keep = []
@@ -253,6 +258,7 @@ class TextTracker:
         """Forget everything, for a new capture target. Dedupe history is cleared too."""
         self._tracks.clear()
         self._seen.clear()
+        self._gone.clear()
         self._left.clear()
 
     @property
@@ -463,14 +469,29 @@ class TextTracker:
             if self._covered(track.bbox, scanned):
                 track.misses += 1
                 limit = cfg.emitted_max_misses if track.stable else cfg.pending_max_misses
-                if track.misses >= limit:
+                if track.misses >= limit or any(iou(track.bbox, b) >= 0.5 for b in fresh):
+                    self._forget(track, now)  # gone, or other text now sits where it was
                     continue
-                if any(iou(track.bbox, box) >= 0.5 for box in fresh):
-                    continue  # other text now sits where this line was
             elif not track.stable and track.variants:
                 self._vote_unchanged(track)  # pixels did not change: that is another read
             keep.append(track)
         self._tracks = keep
+
+    def _forget(self, track: _Track, now: float) -> None:
+        if track.stable and track.line_id and track.emitted_key:
+            self._gone.append((track.emitted_key, track.line_id, track.bbox, now))
+            del self._gone[: max(0, len(self._gone) - self.config.dedupe_max_lines)]
+
+    def _returning(self, key: str, track: _Track, now: float) -> str | None:
+        """The id of a line with exactly this text that left from (about) this spot."""
+        window = self.config.dedupe_window_s
+        self._gone = [g for g in self._gone if now - g[3] <= window]
+        live = {t.line_id for t in self._tracks if t is not track and t.stable}
+        for n, (gkey, line_id, box, _t) in enumerate(self._gone):
+            if gkey == key and line_id not in live and iou(track.bbox, box) >= 0.5:
+                del self._gone[n]
+                return line_id
+        return None
 
     @staticmethod
     def _covered(box: Rect, scanned: Sequence[Rect] | None) -> bool:
@@ -532,7 +553,12 @@ class TextTracker:
     def _lookup(self, key: str, track: _Track, now: float) -> str | None:
         """The ``line_id`` of a recently seen line with this text, unless it is a real repeat."""
         cfg = self.config
-        if len(key) < cfg.dedupe_min_chars or cfg.dedupe_window_s <= 0:
+        if cfg.dedupe_window_s <= 0:
+            return None
+        back = self._returning(key, track, now)
+        if back is not None:
+            return back
+        if len(key) < cfg.dedupe_min_chars:
             return None
         hit = self._seen.get(key)
         if hit is None and self._seen:

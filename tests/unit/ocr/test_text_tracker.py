@@ -732,3 +732,55 @@ def test_returning_line_read_once_with_override_keeps_its_id(now):
 def test_stable_reads_override_below_one_is_refused(now):
     with pytest.raises(ValueError):
         tracker().update([], now=now(), stable_reads=0)
+
+
+# ---- short lines that flicker away and back -----------------------------------------------
+
+
+def _drop(t, now):
+    for _ in range(4):
+        t.update([], now=now(), scanned=None)
+
+
+def _show(t, now, text, **kw):
+    result = None
+    for _ in range(2):
+        result = t.update([blk(text, **kw)], now=now())
+    return result
+
+
+def test_flickering_short_line_keeps_its_id(now):
+    t = tracker(stable_reads=2)
+    first = _show(t, now, "新", x=300, y=50, w=24)
+    line_id = first.visible[0].line_id
+    _drop(t, now)
+    back = _show(t, now, "新", x=300, y=50, w=24)
+    assert back.new == () and line_id in back.read
+    assert back.visible[0].line_id == line_id
+
+
+def test_flickering_short_line_keeps_its_id_after_a_scroll(now):
+    t = tracker(stable_reads=2)
+    line_id = _show(t, now, "新", x=300, y=150, w=24).visible[0].line_id
+    _drop(t, now)
+    t.scroll(-60)
+    back = _show(t, now, "新", x=300, y=90, w=24)
+    assert back.new == () and back.visible[0].line_id == line_id
+
+
+def test_real_repeat_of_a_short_message_elsewhere_is_new(now):
+    t = tracker(stable_reads=2)
+    first = _show(t, now, "好", x=20, y=100, w=24)
+    _drop(t, now)
+    again = _show(t, now, "好", x=20, y=400, w=24)
+    assert len(again.new) == 1
+    assert again.new[0].line_id != first.visible[0].line_id
+
+
+def test_different_text_at_the_same_spot_is_new(now):
+    t = tracker(stable_reads=2)
+    first = _show(t, now, "新", x=300, y=50, w=24)
+    _drop(t, now)
+    other = _show(t, now, "福", x=300, y=50, w=24)
+    assert len(other.new) == 1
+    assert other.new[0].line_id != first.visible[0].line_id
