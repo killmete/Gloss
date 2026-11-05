@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from gloss.core.config import ModelPrice
-from gloss.core.contracts import SpendLedger, TokenUsage
+from gloss.core.contracts import GlossError, SpendLedger, TokenUsage
 
 BudgetLevel = Literal["ok", "warn", "hourly_limit", "monthly_limit"]
 HOUR_S = 3600.0
@@ -81,10 +81,22 @@ class BudgetGuard:
         self._warn_at = warn_at
         self._clock = clock
 
-    @property
-    def ledger_recovered(self) -> bool:
-        """True once the ledger file was damaged and restarted (this month's total began at 0)."""
-        return bool(getattr(self._ledger, "recovered", 0))
+    def reset_notice(self) -> str:
+        """A sentence for the status banner while the ledger was reset in the current month."""
+        reader = getattr(self._ledger, "reset_at", None)
+        if reader is None:
+            return ""
+        try:
+            reset = reader()
+        except GlossError:
+            return ""
+        if reset is None or reset < start_of_month(self._clock()):
+            return ""
+        day = datetime.fromtimestamp(reset, UTC).strftime("%Y-%m-%d")
+        return (
+            f"Spending record was reset on {day} after damage; "
+            "spending before then is not counted this month."
+        )
 
     def record(self, usage: TokenUsage) -> float:
         """Price one call, write it to the ledger, and return its cost in dollars."""
