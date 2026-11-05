@@ -146,6 +146,9 @@ def parse_translations(text: str) -> dict[int, str] | None:
 class AnthropicTranslator:
     name = "anthropic"
     REQUIRES_CONTRACT = ">=1.0,<2.0"
+    # Bump when prompts/system.txt changes meaning, so cached translations made under the old
+    # rules are not reused (the service adds it to the cache key).
+    PROMPT_VERSION = 2
 
     def __init__(self, context: AdapterContext) -> None:
         s = context.settings
@@ -356,7 +359,7 @@ class AnthropicTranslator:
                 )
             )
         if any(r.status == "failed" for r in results):
-            log.info(
+            log.debug(
                 "Anthropic returned %d failed line(s) of %d",
                 sum(r.status == "failed" for r in results),
                 len(results),

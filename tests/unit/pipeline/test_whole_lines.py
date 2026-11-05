@@ -6,7 +6,7 @@ from gloss.core.contracts import Rect
 from gloss.core.pipeline import _whole_lines
 
 W, H = 1900, 700
-LINE = Rect(100, 370, 300, 25)  # "ea能不能做个人" with an animated sticker at its right end
+LINE = Rect(100, 370, 300, 25)  # a short message with an animated sticker at its right end
 
 
 def test_a_change_beside_a_line_grows_to_the_whole_line():

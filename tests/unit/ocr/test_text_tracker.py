@@ -465,7 +465,7 @@ def test_identical_text_that_moved_beats_similar_text_in_the_old_place(now):
     """Two headers differ only by their time. After a scroll the second sits where the first
     was, and must not be mistaken for it."""
     t = tracker(stable_reads=2)
-    first, second = "茉川-钻石-00 22:05:37", "茉川-钻石-00 22:05:54"
+    first, second = "小林-钻石-00 22:05:37", "小林-钻石-00 22:05:54"
     emitted = []
     for _ in range(2):
         emitted += t.update([blk(first, y=490), blk(second, y=561)], now=now()).new
@@ -535,7 +535,7 @@ def test_dedupe_max_lines_is_validated():
 
 # ---- a line OCR sometimes reads as pieces (animated sticker beside the text) ---------------
 
-WHOLE = "大哥你上班一天有接单两小时多吗"
+WHOLE = "今天晚上一起玩你明天几点有空呀"
 
 
 def emitted_whole(t, now):
@@ -549,7 +549,7 @@ def emitted_whole(t, now):
 def test_pieces_of_a_known_line_are_not_new_lines_and_change_nothing(now):
     t = tracker(stable_reads=2)
     first = emitted_whole(t, now)
-    pieces = [blk("大哥你上班一天", x=24, y=100, w=56), blk("有接单两小时多吗", x=80, y=100, w=62)]
+    pieces = [blk("今天晚上一起玩", x=24, y=100, w=56), blk("你明天几点有空呀", x=80, y=100, w=62)]
     for _ in range(4):
         result = t.update(pieces, now=now())
         assert result.new == () and result.dropped == ()
@@ -562,7 +562,7 @@ def test_pieces_of_a_known_line_are_not_new_lines_and_change_nothing(now):
 def test_alternating_whole_and_pieces_never_emits_again(now):
     t = tracker(stable_reads=2)
     emitted_whole(t, now)
-    pieces = [blk("大哥你上班一天", x=24, y=100, w=56), blk("有接单两小时多吗", x=80, y=100, w=62)]
+    pieces = [blk("今天晚上一起玩", x=24, y=100, w=56), blk("你明天几点有空呀", x=80, y=100, w=62)]
     total = []
     for i in range(10):
         reads = pieces if i % 2 else [blk(WHOLE, x=23, y=100, w=119)]
@@ -574,7 +574,7 @@ def test_pieces_keep_the_line_alive_without_a_whole_read(now):
     t = tracker(stable_reads=2)
     emitted_whole(t, now)
     for _ in range(6):  # more scans than emitted_max_misses
-        t.update([blk("大哥你上班一天", x=24, y=100, w=56)], now=now())
+        t.update([blk("今天晚上一起玩", x=24, y=100, w=56)], now=now())
     assert len(t.visible) == 1
 
 
@@ -636,7 +636,7 @@ def test_two_different_words_side_by_side_stay_separate(now):
 
 def test_look_alike_name_lines_with_other_times_keep_their_ids_after_a_scroll(now):
     t = tracker(stable_reads=2)
-    names = ["茉川-钻石-遥遥 20:53:31", "茉川-钻石-遥遥 20:53:42", "茉川-钻石-遥遥 20:54:07"]
+    names = ["小林-钻石-阿月 20:53:31", "小林-钻石-阿月 20:53:42", "小林-钻石-阿月 20:54:07"]
     ids = {}
     for _ in range(2):
         for b in t.update(
@@ -645,21 +645,21 @@ def test_look_alike_name_lines_with_other_times_keep_their_ids_after_a_scroll(no
             ids[b.text] = b.line_id
     t.scroll(-100)
     shown = [blk(n, y=100 + i * 100 - 100) for i, n in enumerate(names)]
-    shown.append(blk("茉川-钻石-遥遥 20:55:19", y=300))
+    shown.append(blk("小林-钻石-阿月 20:55:19", y=300))
     for _ in range(2):
         result = t.update(shown[1:], now=now())
     by_text = {b.text: b.line_id for b in result.visible}
     assert by_text[names[1]] == ids[names[1]]
     assert by_text[names[2]] == ids[names[2]]
-    assert by_text["茉川-钻石-遥遥 20:55:19"] not in ids.values()
+    assert by_text["小林-钻石-阿月 20:55:19"] not in ids.values()
 
 
 def test_a_text_only_match_needs_the_same_numbers(now):
     t = tracker(stable_reads=2)
     for _ in range(2):
-        first = t.update([blk("茉川-钻石-遥遥 20:53:31", y=500)], now=now())
+        first = t.update([blk("小林-钻石-阿月 20:53:31", y=500)], now=now())
     for _ in range(2):
-        result = t.update([blk("茉川-钻石-遥遥 20:53:42", y=100)], now=now())
+        result = t.update([blk("小林-钻石-阿月 20:53:42", y=100)], now=now())
     assert result.visible[0].line_id != first.visible[0].line_id
 
 

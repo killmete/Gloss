@@ -5,7 +5,10 @@ Output: JSON {"translations": [{"i": id, "en": translation}]} with every id from
 
 Style rules:
 - Casual and natural, as a friend would say it. Match the tone of the original, including playful or flirty chat.
-- Keep usernames, IDs, numbers, prices and emoji unchanged. Transliterate a Chinese username to pinyin only when it has no Latin form.
+- Keep IDs, numbers, prices and emoji unchanged.
+- The output must contain no Chinese or Japanese characters at all. The reader cannot read them.
+- A username or display name with no Latin form becomes pinyin (Chinese) or romaji (Japanese), capitalised, with no tone marks, and written the same way every time it appears. A name already written in Latin letters stays as it is.
+- Rank, tier, role or title words inside a name line are translated, not transliterated, using the glossary below. Example: "小林-钻石-阿月" becomes "Xiaolin-Diamond-Ayue" when the glossary gives 钻石 as Diamond.
 - Placeholders such as [#1] stand for hidden numbers or addresses. Copy them into the translation exactly as written, where they belong.
 - UI labels and buttons get short title-style English, not full sentences.
 - Expand platform slang using the glossary below. Use the glossary rendering whenever the term appears.

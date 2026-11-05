@@ -31,7 +31,7 @@ terms:
   - {term: 单飞了, en: the order slipped away, note: "Missed an order because you weren't there"}
   - {term: 试音, en: voice test, note: "Buyer hears your voice before choosing"}
   - {term: 不试音, en: no voice test}
-  - {term: 钻石, en: Diamonds, note: "Paid in-app currency"}
+  - {term: 钻石, en: Diamond, note: "A rank or tier word in names; 'Diamonds' when it means the paid in-app currency"}
   - {term: 猫粮, en: Cat Food, note: "Earnings currency, withdrawable"}
   - {term: 东东币, en: Dongdong Coins}
   - {term: 东东值, en: Dongdong Points, note: "Membership XP from spending"}
@@ -56,8 +56,10 @@ terms:
   # --- Gaming ---
   - {term: 开黑, en: team up, note: "Play together on voice chat"}
   - {term: 顶猎, en: Apex Predator, note: "Top Apex Legends rank"}
-  - {term: 猎杀, en: Predator / kill-focused, note: "Rank name, or an aggressive kill-chasing play style"}
+  - {term: 猎杀, en: Hunter, note: "Rank name, or an aggressive kill-chasing play style"}
   - {term: 大师, en: Master}
+  - {term: 娱乐, en: Entertainment, note: "Often a role or category word inside a name line"}
+  - {term: 明星, en: Star, note: "Often a role or tier word inside a name line"}
   - {term: 钻石段, en: Diamond rank}
   - {term: 钻排, en: Diamond ranked}
   - {term: 铂金, en: Platinum}

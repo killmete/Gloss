@@ -38,7 +38,7 @@ def test_a_one_character_message_on_a_still_bubble_is_kept():
 
 
 def test_longer_text_on_an_animated_spot_is_kept():
-    assert _filter([block("茉川-钻石-遥遥", x=610, w=80)]) == ["茉川-钻石-遥遥"]
+    assert _filter([block("小林-钻石-阿月", x=610, w=80)]) == ["小林-钻石-阿月"]
 
 
 def test_a_short_read_only_partly_on_an_animated_spot_is_kept():

@@ -61,6 +61,19 @@ from gloss.services.reliability import CircuitBreaker, RetryPolicy, call_with_re
 log = logging.getLogger(__name__)
 
 RETRYABLE_AS_A_GROUP: tuple[FailureReason, ...] = ("refused", "truncated")
+# Reasons worth naming in the log, as a short plain word each (never any text).
+REASON_WORDS: dict[str, str] = {
+    "missing": "missing",
+    "invalid_output": "empty",
+    "truncated": "cut off",
+    "refused": "refused",
+}
+# Health: judged over the last 10 batches, and only once at least 4 lines were sent, so one bad
+# line in a quiet minute does not raise a warning.
+HEALTH_WINDOW_BATCHES = 10
+HEALTH_MIN_LINES = 4
+LINES_FAILED_NOTE = "Some lines could not be translated; showing the original text."
+TRIVIAL_PROVIDER = "gloss"
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,6 +215,7 @@ class TranslationService:
         self._session_usd = 0.0
         self._last_provider: str | None = None
         self._last_all_failed = False
+        self._recent: deque[tuple[int, int]] = deque(maxlen=HEALTH_WINDOW_BATCHES)
 
     # ---- lifecycle ----------------------------------------------------------------------
 
@@ -290,13 +304,20 @@ class TranslationService:
                 "degraded",
             )
         notes = []
+        if self._many_lines_failing():
+            notes.append(LINES_FAILED_NOTE)
         if budget is not None and budget.level == "warn":
             share = int(budget.month_share * 100)
             notes.append(f"{share}% of the monthly translation budget is used.")
         reset = self._budget.reset_notice() if self._budget is not None else ""
         if reset:
             notes.append(reset)
-        return " ".join(notes), "degraded" if reset else "ok"
+        return " ".join(notes), "degraded" if (reset or self._many_lines_failing()) else "ok"
+
+    def _many_lines_failing(self) -> bool:
+        bad = sum(b for b, _ in self._recent)
+        total = sum(t for _, t in self._recent)
+        return total >= HEALTH_MIN_LINES and bad * 2 > total
 
     # ---- translating --------------------------------------------------------------------
 
@@ -321,7 +342,12 @@ class TranslationService:
 
         self._refresh_budget()
         self._last_all_failed = False
-        pending = [u for u in units.values() if not self._from_cache(u, run)]
+        for unit in units.values():
+            if not any(ch.isalpha() for ch in unit.text):  # digits, punctuation, emoji only
+                run.outcomes[unit.text] = _Outcome(unit.text, TRIVIAL_PROVIDER, None, "ok")
+        pending = [
+            u for u in units.values() if u.text not in run.outcomes and not self._from_cache(u, run)
+        ]
         if pending:
             leftover = self._through_chain(pending, run)
             for unit in leftover:
@@ -340,11 +366,13 @@ class TranslationService:
 
     def _key(self, provider: _Provider, run: _Run, text: str) -> CacheKey:
         model = getattr(provider.translator, "model", None)
+        prompt = getattr(provider.translator, "PROMPT_VERSION", None)
+        version = run.glossary.version if prompt is None else f"{run.glossary.version}.p{prompt}"
         return CacheKey(
             provider.name,
             model if isinstance(model, str) else None,
             self._s.target_lang,
-            run.glossary.version,
+            version,
             text,
         )
 
@@ -431,13 +459,40 @@ class TranslationService:
     def _through_chain(self, pending: list[_Unit], run: _Run) -> list[_Unit]:
         """Send units down the chain. Returns the ones nobody translated."""
         remaining = pending
-        for provider in self._providers:
+        judged = False
+        for index, provider in enumerate(self._providers):
             if not remaining:
                 break
             if not self._ensure_open(provider) or not self._claim(provider):
                 continue
+            sent = len(remaining)
             remaining = self._attempt(provider, remaining, run, retried=False)
+            bad = [u for u in remaining if u.failure in REASON_WORDS]
+            if not judged:
+                judged = True
+                self._recent.append((len(bad), len(pending)))
+            if bad:
+                last = index == len(self._providers) - 1
+                self._warn_left(provider, bad, sent, last)
+        if not judged:
+            self._recent.append((0, 0))
         return remaining
+
+    @staticmethod
+    def _warn_left(p: _Provider, bad: list[_Unit], sent: int, last: bool) -> None:
+        counts: dict[str, int] = {}
+        for unit in bad:
+            word = REASON_WORDS[unit.failure]
+            counts[word] = counts.get(word, 0) + 1
+        detail = ", ".join(f"{word} {n}" for word, n in counts.items())
+        log.warning(
+            "%s left %d of %d lines untranslated (%s); %s",
+            p.name.capitalize(),
+            len(bad),
+            sent,
+            detail,
+            "showing the original for those" if last else "trying the next translator",
+        )
 
     def _claim(self, p: _Provider) -> bool:
         """Final go/no-go for a call. Takes the half-open trial, so call it last."""
@@ -487,11 +542,15 @@ class TranslationService:
         again = [u for u in failed if u.failure not in RETRYABLE_AS_A_GROUP]
         left: list[_Unit] = []
         if len(grouped) > 1:
+            # Half the lines means twice the output room per line. A refusal is narrowed down
+            # this way to the one line that causes it.
             middle = len(grouped) // 2
             for half in (grouped[:middle], grouped[middle:]):
                 left += self._follow_up(p, half, run, retried)
+        elif grouped and grouped[0].failure == "truncated" and not retried:
+            left += self._follow_up(p, grouped, run, True)  # one more try, alone
         else:
-            left += grouped
+            left += grouped  # a single refused line is not asked again
         if again:
             left += again if retried else self._follow_up(p, again, run, True)
         return left
@@ -579,7 +638,11 @@ class TranslationService:
         """Add translated lines to the context for the next batch (redacted text only)."""
         for unit in units.values():
             outcome = run.outcomes[unit.text]
-            if outcome.status == "ok" and not unit.low_quality:
+            if (
+                outcome.status == "ok"
+                and not unit.low_quality
+                and outcome.provider != TRIVIAL_PROVIDER
+            ):
                 self._context.append(ContextLine(unit.text, outcome.text))
 
 
