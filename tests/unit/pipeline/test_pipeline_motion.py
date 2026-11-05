@@ -48,7 +48,8 @@ def _line_items(r: Rig, text: str):
 
 
 def test_two_pixel_ocr_jitter_on_a_static_line_does_not_move_the_box(rig):
-    r = rig()
+    # _read_again pokes one spot repeatedly, which the animated-spot filter would silence.
+    r = rig(animated_suppression=False)
     cap = r.capture("cap", solid())
     ocr = r.ocr("ocr", [block(LINE, y=40)])
     r.start()
@@ -245,7 +246,8 @@ HALF_A, HALF_B = "你好吗朋友", "今天天气很好"
 
 
 def test_ocr_alternately_splitting_a_stable_line_creates_no_new_lines_or_box_moves(rig):
-    r = rig()
+    # _read_again pokes one spot repeatedly, which the animated-spot filter would silence.
+    r = rig(animated_suppression=False)
     cap = r.capture("cap", solid(400, 120))
     ocr = r.ocr("ocr", [block(WHOLE, x=20, y=40, w=240, h=24)])
     r.start()

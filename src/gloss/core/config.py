@@ -96,6 +96,7 @@ PositiveInt = Annotated[int, Field(gt=0, strict=True)]
 NonNegativeInt = Annotated[int, Field(ge=0, strict=True)]
 PositiveFloat = Annotated[Number, Field(gt=0)]
 NonNegativeFloat = Annotated[Number, Field(ge=0)]
+Share = Annotated[Number, Field(gt=0, le=1)]  # a fraction above 0, up to and including 1
 SavedRegion = Annotated[list[Annotated[int, Field(strict=True)]], AfterValidator(_check_region)]
 AdapterTables = dict[str, dict[str, Any]]
 
@@ -128,6 +129,12 @@ class CaptureConfig(Section):
     black_frame_max_mean: NonNegativeFloat
     idle_fps: PositiveFloat
     idle_after_s: PositiveFloat
+    scroll_min_agreement: Share
+    animated_window: PositiveInt
+    animated_min_changes: PositiveInt
+    animated_recheck_s: PositiveFloat
+    animated_max_share: Share
+    animated_unmark_cells: NonNegativeInt
     region: SavedRegion
     sources: CaptureSources
     adapters: AdapterTables
@@ -138,6 +145,14 @@ class CaptureConfig(Section):
         fps_max = info.data.get("fps_max")  # absent if fps_max itself was invalid
         if fps_max is not None and value > fps_max:
             raise ValueError(f"idle_fps must not be above fps_max ({fps_max:g})")
+        return value
+
+    @field_validator("animated_min_changes")
+    @classmethod
+    def _min_changes_within_window(cls, value: int, info: ValidationInfo) -> int:
+        window = info.data.get("animated_window")  # absent if animated_window was invalid
+        if window is not None and value > window:
+            raise ValueError(f"animated_min_changes must not be above animated_window ({window})")
         return value
 
     @property
@@ -161,6 +176,8 @@ class OCRConfig(Section):
     stable_reads: PositiveInt
     dedupe_window_s: PositiveFloat
     dedupe_max_lines: PositiveInt
+    piece_inside: Number = Field(ge=0, le=1)
+    piece_min_chars: PositiveInt
     adapters: AdapterTables
 
 
@@ -487,6 +504,34 @@ def _clamp_idle_fps(defaults: dict[str, Any], user: dict[str, Any]) -> bool:
     return True
 
 
+def _min_changes_follows_window(defaults: dict[str, Any], user: dict[str, Any]) -> None:
+    """Like ``_idle_follows_fps_max``: a user who lowers only ``animated_window`` below the
+    default ``animated_min_changes`` gets the window as the threshold, in memory only."""
+    capture = user.get("capture")
+    if not isinstance(capture, dict) or "animated_min_changes" in capture:
+        return
+    window, least = capture.get("animated_window"), defaults["capture"]["animated_min_changes"]
+    if _is_int(window) and _is_int(least) and 0 < window < least:
+        capture["animated_min_changes"] = window
+
+
+def _clamp_min_changes(defaults: dict[str, Any], user: dict[str, Any]) -> bool:
+    """The user set ``animated_min_changes`` above ``animated_window``: use the window."""
+    capture = user.get("capture")
+    if not isinstance(capture, dict):
+        return False
+    window = capture.get("animated_window", defaults["capture"]["animated_window"])
+    least = capture.get("animated_min_changes")
+    if not (_is_int(window) and _is_int(least)) or not 0 < window < least:
+        return False
+    capture["animated_min_changes"] = window
+    return True
+
+
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _validate(
     defaults: dict[str, Any], user: dict[str, Any], warnings: list[str], defaults_path: Path
 ) -> GlossConfig:
@@ -504,6 +549,14 @@ def _validate(
                 continue
             if error["loc"] == ("capture", "idle_fps") and _clamp_idle_fps(defaults, user):
                 warnings.append(f"Using capture.fps_max for 'capture.idle_fps': {error['msg']}")
+                continue
+            if error["loc"] == ("capture", "animated_min_changes") and _clamp_min_changes(
+                defaults, user
+            ):
+                warnings.append(
+                    "Using capture.animated_window for 'capture.animated_min_changes': "
+                    f"{error['msg']}"
+                )
                 continue
             if not _remove_key(user, error["loc"]):
                 raise ConfigError(f"Default config {defaults_path} is invalid: {exc}") from exc
@@ -523,6 +576,7 @@ def load_config(
     user = _read_user(user_file, warnings)
     _check_privacy_intent(user, warnings)
     _idle_follows_fps_max(defaults, user)
+    _min_changes_follows_window(defaults, user)
     config = _validate(defaults, user, warnings, defaults_file)
     warnings += [f"Unknown setting ignored: {key}" for key in _unknown_keys(config)]
     return LoadedConfig(config, tuple(warnings))
@@ -559,6 +613,7 @@ def update_user_config(
     defaults = _read_defaults(defaults_file)
     effective = copy.deepcopy(updated)
     _idle_follows_fps_max(defaults, effective)  # the file keeps only what the user chose
+    _min_changes_follows_window(defaults, effective)
     GlossConfig.model_validate(_deep_merge(defaults, effective))
     if user_file.exists():
         _backup(user_file, f"v{result.from_version}" if result.changed else "settings")

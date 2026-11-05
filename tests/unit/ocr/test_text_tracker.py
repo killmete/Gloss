@@ -597,3 +597,79 @@ def test_piece_thresholds_are_configurable():
     assert (cfg.piece_inside, cfg.piece_min_chars) == (0.9, 3)
     with pytest.raises(ValueError):
         TrackerConfig(piece_inside=1.5)
+
+
+# ---- a piece and its whole in the same update ---------------------------------------------
+
+
+def test_whole_and_piece_in_one_update_is_one_new_line(now):
+    t = tracker(stable_reads=2)
+    whole, piece = "今天晚上一起打排位赛吧", "今天晚上一起"
+    result = None
+    for _ in range(2):
+        result = t.update(
+            [blk(piece, x=576, y=774, w=77), blk(whole, x=576, y=773, w=159)], now=now()
+        )
+    assert [b.text for b in result.new] == [whole]
+    assert len(result.visible) == 1
+
+
+def test_piece_one_frame_before_the_whole_becomes_the_whole(now):
+    t = tracker(stable_reads=2)
+    whole = "今天晚上一起打排位赛吧"
+    t.update([blk("今天晚上", x=607, y=811, w=60)], now=now())
+    new = []
+    for _ in range(2):
+        new += t.update([blk(whole, x=606, y=810, w=175)], now=now()).new
+    assert [b.text for b in new] == [whole]
+    assert len(t.update([blk(whole, x=606, y=810, w=175)], now=now()).visible) == 1
+
+
+def test_two_different_words_side_by_side_stay_separate(now):
+    t = tracker(stable_reads=1)
+    result = t.update([blk("你好吗朋友", x=20, w=100), blk("再见了朋友", x=140, w=100)], now=now())
+    assert len(result.new) == 2
+
+
+# ---- look-alike lines after a scroll ------------------------------------------------------
+
+
+def test_look_alike_name_lines_with_other_times_keep_their_ids_after_a_scroll(now):
+    t = tracker(stable_reads=2)
+    names = ["茉川-钻石-遥遥 20:53:31", "茉川-钻石-遥遥 20:53:42", "茉川-钻石-遥遥 20:54:07"]
+    ids = {}
+    for _ in range(2):
+        for b in t.update(
+            [blk(n, y=100 + i * 100) for i, n in enumerate(names)], now=now()
+        ).visible:
+            ids[b.text] = b.line_id
+    t.scroll(-100)
+    shown = [blk(n, y=100 + i * 100 - 100) for i, n in enumerate(names)]
+    shown.append(blk("茉川-钻石-遥遥 20:55:19", y=300))
+    for _ in range(2):
+        result = t.update(shown[1:], now=now())
+    by_text = {b.text: b.line_id for b in result.visible}
+    assert by_text[names[1]] == ids[names[1]]
+    assert by_text[names[2]] == ids[names[2]]
+    assert by_text["茉川-钻石-遥遥 20:55:19"] not in ids.values()
+
+
+def test_a_text_only_match_needs_the_same_numbers(now):
+    t = tracker(stable_reads=2)
+    for _ in range(2):
+        first = t.update([blk("茉川-钻石-遥遥 20:53:31", y=500)], now=now())
+    for _ in range(2):
+        result = t.update([blk("茉川-钻石-遥遥 20:53:42", y=100)], now=now())
+    assert result.visible[0].line_id != first.visible[0].line_id
+
+
+def test_repeated_short_message_twice_keeps_both_ids_across_a_scroll(now):
+    t = tracker(stable_reads=2)
+    for _ in range(2):
+        first = t.update([blk("好", y=100, w=20), blk("好", y=200, w=20)], now=now())
+    ids = [b.line_id for b in first.visible]
+    assert len(set(ids)) == 2
+    t.scroll(-60)
+    result = t.update([blk("好", y=40, w=20), blk("好", y=140, w=20)], now=now())
+    assert result.new == ()
+    assert [b.line_id for b in result.visible] == ids

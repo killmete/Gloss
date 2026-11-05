@@ -192,8 +192,9 @@ class TextTracker:
         """
         before = self._live_ids()
         reads = [r for r in (self._read(b) for b in blocks) if r is not None]
-        reads, supporting = self._split_pieces(reads)
-        matched = self._match(reads)
+        reads = self._collapse_reads(reads)
+        reads, supporting, pending_pieces = self._split_pieces(reads)
+        matched, absorbed = self._match(reads)
         touched: list[_Track] = list(supporting)
         for track in supporting:
             track.misses = 0  # seen, as pieces
@@ -202,8 +203,16 @@ class TextTracker:
             if track is None:
                 track = _Track(read[0].bbox, now, now)
                 self._tracks.append(track)
+            elif index in absorbed:
+                track.variants.clear()  # a pending piece, now read whole: start from the whole
             self._apply(track, read, now)
             touched.append(track)
+        for track, read in pending_pieces:
+            if id(track) not in set(map(id, touched)):  # a clipped read votes for the longer text
+                box = track.bbox
+                self._apply(track, read, now)
+                track.bbox = box
+                touched.append(track)
         self._age(set(map(id, touched)), scanned, now)
         new = self._stabilise(now)
         return self._result(new, before, now)
@@ -255,35 +264,63 @@ class TextTracker:
 
     def _split_pieces(
         self, reads: list[tuple[TextBlock, str, str]]
-    ) -> tuple[list[tuple[TextBlock, str, str]], list[_Track]]:
+    ) -> tuple[list[tuple[TextBlock, str, str]], list[_Track], list[tuple[_Track, tuple]]]:
         """Take out reads that are only a piece of a stable line (OCR split it in two, for
         example around an animated sticker). They keep that line alive and nothing more."""
         cfg = self.config
-        stable = [t for t in self._tracks if t.stable and t.emitted_key]
+        stable = [t for t in self._tracks if self._whole_key(t)]
         if not stable:
-            return reads, []
+            return reads, [], []
         rest: list[tuple[TextBlock, str, str]] = []
         supporting: dict[int, _Track] = {}
+        pending: list[tuple[_Track, tuple]] = []
         for read in reads:
             owner = self._piece_owner(read, stable) if len(read[2]) >= cfg.piece_min_chars else None
             if owner is None:
                 rest.append(read)
-            else:
+            elif owner.stable:
                 supporting[id(owner)] = owner
-        return rest, list(supporting.values())
+            else:
+                pending.append((owner, read))
+        return rest, list(supporting.values()), pending
+
+    @staticmethod
+    def _whole_key(track: _Track) -> str:
+        if track.stable:
+            return track.emitted_key
+        return track.lead().key if track.variants else ""
+
+    def _is_piece(self, small: Rect, small_key: str, big: Rect, big_key: str) -> bool:
+        """``small`` is a clipped part of ``big``: inside its box and contained in its text."""
+        cfg = self.config
+        if len(small_key) < cfg.piece_min_chars or len(small_key) > len(big_key):
+            return False
+        if intersection_area(small, big) < cfg.piece_inside * max(small.area, 1):
+            return False
+        return small_key in big_key or fuzz.partial_ratio(small_key, big_key) >= cfg.dup_match * 100
+
+    def _collapse_reads(
+        self, reads: list[tuple[TextBlock, str, str]]
+    ) -> list[tuple[TextBlock, str, str]]:
+        """Within one OCR result, drop reads that are only a piece of another read."""
+        if len(reads) < 2:
+            return reads
+        order = sorted(reads, key=lambda r: (-len(r[2]), -r[0].bbox.area))
+        kept: list[tuple[TextBlock, str, str]] = []
+        for read in order:
+            if any(self._is_piece(read[0].bbox, read[2], k[0].bbox, k[2]) for k in kept):
+                continue
+            kept.append(read)
+        keep_ids = {id(r) for r in kept}
+        return [r for r in reads if id(r) in keep_ids]
 
     def _piece_owner(self, read: tuple[TextBlock, str, str], stable: list[_Track]) -> _Track | None:
-        cfg = self.config
         box, key = read[0].bbox, read[2]
         best: _Track | None = None
         for track in stable:
-            whole = track.emitted_key
-            if key == whole or len(key) > len(whole):
+            whole = self._whole_key(track)
+            if key == whole or not self._is_piece(box, key, track.bbox, whole):
                 continue  # the whole line, or more than it: normal matching
-            if intersection_area(box, track.bbox) < cfg.piece_inside * max(box.area, 1):
-                continue
-            if key not in whole and fuzz.partial_ratio(key, whole) < cfg.dup_match * 100:
-                continue
             if best is None or track.bbox.area < best.bbox.area:
                 best = track  # the tightest line that holds it
         return best
@@ -293,20 +330,38 @@ class TextTracker:
     def _similarity(self, key: str, track: _Track) -> float:
         return max(fuzz.ratio(key, v.key) for v in track.variants.values()) / 100
 
-    def _match(self, reads: list[tuple[TextBlock, str, str]]) -> dict[int, _Track]:
+    def _match(self, reads: list[tuple[TextBlock, str, str]]) -> tuple[dict[int, _Track], set[int]]:
         cfg = self.config
-        pairs: list[tuple[float, int, _Track]] = []
+        absorbing: set[tuple[int, int]] = set()
+        pairs: list[tuple[float, int, _Track]] = []  # by position (or absorbing a piece)
+        moved: list[tuple[float, float, int, _Track]] = []  # text only: (|dy|, -sim, read, track)
+        positional: set[int] = set()  # reads that have a position candidate
         for i, (block, _text, key) in enumerate(reads):
             box = block.bbox
             for track in self._tracks:
+                if (
+                    not track.stable
+                    and track.variants
+                    and self._whole_key(track) != key
+                    and self._is_piece(track.bbox, self._whole_key(track), box, key)
+                ):  # a pending piece, now seen whole
+                    pairs.append((200.0, i, track))
+                    absorbing.add((i, id(track)))
+                    positional.add(i)
+                    continue
                 sim = self._similarity(key, track)
                 overlap = iou(box, track.bbox)
                 if overlap >= cfg.min_iou and sim >= cfg.text_match:
                     pairs.append((100 * sim + 10 * overlap, i, track))
+                    positional.add(i)
                     continue
-                if sim >= cfg.scroll_match and len(key) >= 2 and self._same_column(box, track.bbox):
-                    nearness = 1.0 / (1.0 + abs(box.y - track.bbox.y) / 100)
-                    pairs.append((100 * sim + 5 * nearness, i, track))
+                if (
+                    sim >= cfg.scroll_match
+                    and len(key) >= 2
+                    and self._same_column(box, track.bbox)
+                    and self._same_digits(key, track)
+                ):
+                    moved.append((abs(box.y - track.bbox.y), -sim, i, track))
         pairs.sort(key=lambda p: -p[0])
         taken: set[int] = set()
         matched: dict[int, _Track] = {}
@@ -315,7 +370,28 @@ class TextTracker:
                 continue
             matched[i] = track
             taken.add(id(track))
-        return matched
+        # Text-only matches: only for reads with no position candidate, nearest first.
+        moved.sort(key=lambda m: (m[0], m[1]))
+        text_matched: dict[int, _Track] = {}
+        for _dy, _sim, i, track in moved:
+            if i in positional or i in matched or id(track) in taken:
+                continue
+            text_matched[i] = track
+            taken.add(id(track))
+        # A moved match whose shift disagrees with the others is a look-alike line.
+        if len(text_matched) >= 3:
+            shifts = {i: reads[i][0].bbox.y - t.bbox.y for i, t in text_matched.items()}
+            for i in list(text_matched):
+                others = sorted(v for j, v in shifts.items() if j != i)
+                median = others[len(others) // 2]
+                if abs(shifts[i] - median) > reads[i][0].bbox.h:
+                    del text_matched[i]
+        matched.update(text_matched)
+        return matched, {i for i, t in matched.items() if (i, id(t)) in absorbing}
+
+    def _same_digits(self, key: str, track: _Track) -> bool:
+        digits = _digits(key)
+        return any(_digits(v.key) == digits for v in track.variants.values())
 
     @staticmethod
     def _same_column(a: Rect, b: Rect) -> bool:

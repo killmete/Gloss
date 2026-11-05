@@ -433,6 +433,8 @@ class Pipeline:
                 stable_reads=config.ocr.stable_reads,
                 dedupe_window_s=config.ocr.dedupe_window_s,
                 dedupe_max_lines=config.ocr.dedupe_max_lines,
+                piece_inside=config.ocr.piece_inside,
+                piece_min_chars=config.ocr.piece_min_chars,
                 skip_langs=(t.target_lang,),
             )
         )
@@ -549,7 +551,16 @@ class Pipeline:
         cfg = self._config
         stage = self._stages["capture"]
         watch = stage.watch
-        detector = ChangeDetector(tile_size=cfg.capture.tile_size)
+        c = cfg.capture
+        detector = ChangeDetector(
+            tile_size=c.tile_size,
+            scroll_min_agreement=c.scroll_min_agreement,
+            animated_window=c.animated_window,
+            animated_min_changes=c.animated_min_changes,
+            animated_recheck_s=c.animated_recheck_s,
+            animated_max_share=c.animated_max_share,
+            animated_unmark_cells=c.animated_unmark_cells,
+        )
         black = BlackFrameCheck(cfg.capture.black_frame_reads, cfg.capture.black_frame_max_mean)
         choice = cfg.capture.active
         names = self._registry.resolve_chain("capture", choice.source, choice.fallbacks)
@@ -770,8 +781,13 @@ class Pipeline:
                 continue
             bbox = block.bbox.translated(ox, oy)
             old = self._bboxes.get(block.line_id)
-            if old is not None and (stale or _settled(old, bbox, threshold)):
-                continue  # OCR jitter, or a position from before the scroll
+            if old is not None:
+                if stale:
+                    continue  # a position from before a scroll already shown
+                steady = _steady(old, bbox, threshold)
+                if steady is None:
+                    continue  # OCR jitter
+                bbox = steady
             self._bboxes[block.line_id] = bbox
             shown = self._shown.get(block.line_id)
             if shown is not None:
@@ -913,15 +929,25 @@ def _clip(rect: Rect, bounds: Rect) -> Rect | None:
     return Rect(x, y, right - x, bottom - y)
 
 
-def _settled(old: Rect, new: Rect, threshold_px: int) -> bool:
-    """True when ``new`` differs from ``old`` by no more than OCR jitter."""
+def _steady(old: Rect, new: Rect, threshold_px: int) -> Rect | None:
+    """The box to show for a line read at ``new``, or None to keep ``old`` as it is.
+
+    On the same row the box only grows, to cover every part of the line OCR has seen, so a
+    read that misses the first characters (next to an animated avatar, say) moves nothing.
+    A line that moved to another row takes its new position.
+    """
     limit = max(threshold_px, old.h // 4)
-    return (
-        abs(new.x - old.x) <= limit
-        and abs(new.y - old.y) <= limit
-        and abs(new.right - old.right) <= limit
-        and abs(new.bottom - old.bottom) <= limit
-    )
+    # Same row: the two boxes share most of their height (a partial read can sit a few
+    # pixels higher or lower, because its glyphs differ).
+    shared = min(old.bottom, new.bottom) - max(old.y, new.y)
+    same_row = shared >= 0.6 * min(old.h, new.h)
+    overlaps = new.x < old.right and old.x < new.right
+    if not (same_row and overlaps):
+        return new
+    x, right = min(old.x, new.x), max(old.right, new.right)
+    if old.x - x <= limit and right - old.right <= limit:
+        return None
+    return Rect(x, old.y, right - x, old.h)
 
 
 def _target_opener(target: CaptureTarget) -> Callable[[CaptureSource], None]:

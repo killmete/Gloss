@@ -68,3 +68,25 @@ def test_mask_to_rects_groups_rows_and_ignores_small_gaps():
 def test_quantize_drops_low_bits():
     assert quantize(np.array([7, 8, 15], dtype=np.uint8), 3).tolist() == [0, 1, 1]
     assert quantize(np.array([7], dtype=np.uint8), 0).tolist() == [7]
+
+
+def test_find_scroll_tolerates_an_animated_side_panel_and_reports_the_columns():
+    from gloss.services.scroll_shift import find_scroll
+
+    rng = np.random.default_rng(3)
+    page = rng.integers(0, 32, size=(500, 320), dtype=np.uint8)
+    page[::3] = 0  # blank-ish rows between text rows
+    before, after = page[0:300].copy(), page[40:340].copy()
+    before[:, 160:] = rng.integers(0, 32, size=(300, 160), dtype=np.uint8)  # animated half
+    after[:, 160:] = rng.integers(0, 32, size=(300, 160), dtype=np.uint8)
+    match = find_scroll(before, after)
+    assert match is not None and match.dy == 40 and match.x0 == 0 and match.x1 <= 192
+
+
+def test_find_scroll_refuses_unrelated_images():
+    from gloss.services.scroll_shift import find_scroll
+
+    rng = np.random.default_rng(4)
+    a = rng.integers(0, 32, size=(300, 320), dtype=np.uint8)
+    b = rng.integers(0, 32, size=(300, 320), dtype=np.uint8)
+    assert find_scroll(a, b) is None

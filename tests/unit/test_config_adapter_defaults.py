@@ -276,3 +276,141 @@ def test_overlay_fit_keys_are_listed_with_sane_defaults():
     assert (o["min_font_px"], o["max_font_px"], o["max_lines"]) == (9, 28, 2)
     assert 0 < o["min_font_px"] <= o["max_font_px"]
     assert o["clip_to_capture"] is True
+
+
+# ---- change detection and text-tracker pieces --------------------------------------------
+
+_DETECTOR_KEYS = (
+    "scroll_min_agreement",
+    "animated_window",
+    "animated_min_changes",
+    "animated_recheck_s",
+    "animated_max_share",
+    "animated_unmark_cells",
+)
+_PIECE_KEYS = ("piece_inside", "piece_min_chars")
+
+
+def _code_default(func, name):
+    import inspect
+
+    return inspect.signature(func).parameters[name].default
+
+
+@pytest.mark.parametrize("key", _DETECTOR_KEYS)
+def test_change_detector_defaults_match_the_code(key):
+    from gloss.services.change_detector import ChangeDetector
+
+    assert getattr(CONFIG.capture, key) == _code_default(ChangeDetector.__init__, key)
+
+
+@pytest.mark.parametrize("key", _PIECE_KEYS)
+def test_tracker_piece_defaults_match_the_code(key):
+    from gloss.services.text_tracker import TrackerConfig
+
+    assert getattr(CONFIG.ocr, key) == getattr(TrackerConfig(), key)
+
+
+def test_config_values_build_a_valid_detector_and_tracker():
+    from gloss.services.change_detector import ChangeDetector
+    from gloss.services.text_tracker import TrackerConfig
+
+    ChangeDetector(**{k: getattr(CONFIG.capture, k) for k in _DETECTOR_KEYS})
+    TrackerConfig(**{k: getattr(CONFIG.ocr, k) for k in _PIECE_KEYS})
+
+
+def test_a_user_config_without_the_new_keys_loads_quietly(tmp_path):
+    user = _write(tmp_path / "config.toml", "[capture]\ntile_size = 32\n[ocr]\nstable_reads = 2\n")
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == ()
+    assert loaded.config.capture.animated_window == CONFIG.capture.animated_window
+    assert loaded.config.ocr.piece_min_chars == CONFIG.ocr.piece_min_chars
+
+
+@pytest.mark.parametrize(
+    ("section", "key", "value"),
+    [
+        ("capture", "scroll_min_agreement", "0"),
+        ("capture", "scroll_min_agreement", "1.5"),
+        ("capture", "scroll_min_agreement", "true"),
+        ("capture", "animated_window", "0"),
+        ("capture", "animated_window", "2.5"),
+        ("capture", "animated_min_changes", "0"),
+        ("capture", "animated_recheck_s", "0"),
+        ("capture", "animated_recheck_s", "-1.0"),
+        ("capture", "animated_max_share", "0"),
+        ("capture", "animated_max_share", "1.1"),
+        ("capture", "animated_unmark_cells", "-1"),
+        ("capture", "animated_unmark_cells", "true"),
+        ("ocr", "piece_inside", "-0.1"),
+        ("ocr", "piece_inside", "1.1"),
+        ("ocr", "piece_inside", '"high"'),
+        ("ocr", "piece_min_chars", "0"),
+        ("ocr", "piece_min_chars", "1.5"),
+    ],
+)
+def test_bad_detector_or_piece_values_warn_and_use_the_default(tmp_path, section, key, value):
+    user = _write(tmp_path / "config.toml", f"[{section}]\n{key} = {value}\n")
+    loaded = load_config(user_path=user)
+    assert getattr(getattr(loaded.config, section), key) == getattr(getattr(CONFIG, section), key)
+    assert any(f"{section}.{key}" in w for w in loaded.warnings), loaded.warnings
+
+
+@pytest.mark.parametrize(("key", "value"), [("scroll_min_agreement", 1), ("piece_inside", 0)])
+def test_ratio_edges_are_allowed(tmp_path, key, value):
+    section = "capture" if key.startswith("scroll") else "ocr"
+    user = _write(tmp_path / "config.toml", f"[{section}]\n{key} = {value}\n")
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == ()
+    assert getattr(getattr(loaded.config, section), key) == value
+
+
+def test_min_changes_may_equal_the_window(tmp_path):
+    user = _write(
+        tmp_path / "config.toml", "[capture]\nanimated_window = 4\nanimated_min_changes = 4\n"
+    )
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == ()
+    assert (loaded.config.capture.animated_window, loaded.config.capture.animated_min_changes) == (
+        4,
+        4,
+    )
+
+
+def test_min_changes_above_the_window_warns_and_uses_the_window(tmp_path):
+    user = _write(
+        tmp_path / "config.toml", "[capture]\nanimated_window = 4\nanimated_min_changes = 6\n"
+    )
+    loaded = load_config(user_path=user)
+    assert (loaded.config.capture.animated_window, loaded.config.capture.animated_min_changes) == (
+        4,
+        4,
+    )
+    assert any("capture.animated_min_changes" in w for w in loaded.warnings), loaded.warnings
+
+
+def test_a_small_window_alone_pulls_min_changes_down_quietly(tmp_path):
+    """Lowering only animated_window below the default threshold is a sensible choice."""
+    user = _write(tmp_path / "config.toml", "[capture]\nanimated_window = 2\ntile_size = 32\n")
+    loaded = load_config(user_path=user)
+    capture = loaded.config.capture
+    assert (capture.animated_window, capture.animated_min_changes, capture.tile_size) == (2, 2, 32)
+    assert loaded.warnings == ()
+
+
+def test_the_settings_window_can_save_a_small_window_alone(tmp_path):
+    user = tmp_path / "config.toml"
+    update_user_config({"capture": {"animated_window": 1}}, user_path=user)
+    assert "animated_min_changes" not in user.read_text(encoding="utf-8")
+    assert load_config(user_path=user).config.capture.animated_min_changes == 1
+
+
+def test_the_settings_window_cannot_save_min_changes_above_the_window(tmp_path):
+    from pydantic import ValidationError
+
+    user = tmp_path / "config.toml"
+    with pytest.raises(ValidationError):
+        update_user_config(
+            {"capture": {"animated_window": 3, "animated_min_changes": 5}}, user_path=user
+        )
+    assert not user.exists()

@@ -81,6 +81,7 @@ def fast_config(
     cloud: bool = True,
     idle_fps: float | None = None,
     idle_after_s: float = 1.0,
+    animated_suppression: bool = True,
 ) -> GlossConfig:
     """The default config with a fast frame rate, short timeouts and the fakes' names."""
     c = base_config()
@@ -101,6 +102,9 @@ def fast_config(
                     "black_frame_reads": black_reads,
                     "idle_fps": idle_fps if idle_fps is not None else fps,
                     "idle_after_s": idle_after_s,
+                    # A tiny share means "too much is animated to silence anything", which
+                    # turns the animated-spot filter off for tests that poke one spot often.
+                    **({} if animated_suppression else {"animated_max_share": 1e-9}),
                 }
             ),
             "ocr": c.ocr.model_copy(

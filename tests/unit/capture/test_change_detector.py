@@ -63,7 +63,7 @@ def test_not_fresh_frame_is_skipped_without_hashing(monkeypatch):
     def boom(*_a, **_k):
         raise AssertionError("pixels were looked at")
 
-    monkeypatch.setattr(detector, "_tile_hashes", boom)
+    monkeypatch.setattr(detector, "_prepare", boom)
     different = blank(value=10)
     assert not detector.detect(make_frame(different, fresh=False)).changed
 
@@ -241,3 +241,94 @@ def test_scroll_detection_can_be_turned_off():
     detector.detect(make_frame(page[0:h].copy()))
     result = detector.detect(make_frame(page[60 : 60 + h].copy()))
     assert result.scrolls == () and result.changed
+
+
+# ---- animation -------------------------------------------------------------------------
+
+
+def stamped(image, t):
+    return Frame(image, "t", Rect(0, 0, image.shape[1], image.shape[0]), t, 1.0, True)
+
+
+def animate(image, tick, box=(420, 100, 600, 300)):
+    """Paint a patch that looks different on every tick, like an animated badge or effect."""
+    x0, y0, x1, y1 = box
+    rng = np.random.default_rng(tick)
+    image[y0:y1, x0:x1] = rng.integers(0, 255, size=(y1 - y0, x1 - x0, 3), dtype=np.uint8)
+    return image
+
+
+def test_an_always_animating_patch_stops_being_reported_after_a_few_frames():
+    detector = ChangeDetector(tile_size=64)
+    base = chat_page(list(range(16)))[:H]
+    detector.detect(stamped(animate(base.copy(), 0), 0.0))
+    shares = []
+    for tick in range(1, 20):
+        result = detector.detect(stamped(animate(base.copy(), tick), tick / 12))
+        shares.append(sum(r.area for r in result.dirty) / (W * H))
+    assert all(s == 0 for s in shares[8:])  # silent between rechecks (1.6 s < 2 s)
+
+
+def test_an_animated_patch_is_reread_once_per_recheck_interval():
+    detector = ChangeDetector(tile_size=64, animated_recheck_s=2.0)
+    base = chat_page(list(range(16)))[:H]
+    detector.detect(stamped(animate(base.copy(), 0), 0.0))
+    reported = []
+    for tick in range(1, 61):  # five seconds at 12 fps
+        result = detector.detect(stamped(animate(base.copy(), tick), tick / 12))
+        if result.changed and tick > 8:
+            reported.append(tick / 12)
+            assert covers(result.dirty, Rect(420, 100, 180, 200))
+    assert 1 <= len(reported) <= 3
+    assert all(b - a >= 1.9 for a, b in zip(reported, reported[1:], strict=False))
+
+
+def test_real_text_changes_next_to_an_animated_patch_are_reported_at_once():
+    detector = ChangeDetector(tile_size=64)
+    base = chat_page(list(range(16)))[:H]
+    detector.detect(stamped(animate(base.copy(), 0), 0.0))
+    for tick in range(1, 14):
+        detector.detect(stamped(animate(base.copy(), tick), tick / 12))
+    edited = base.copy()
+    edited[130:150, 60:400] = 20  # a new line of text beside the patch
+    result = detector.detect(stamped(animate(edited, 14), 14 / 12))
+    assert covers(result.dirty, Rect(60, 130, 340, 20))
+
+
+def test_a_scroll_is_found_while_a_patch_keeps_animating():
+    detector = ChangeDetector(tile_size=64, padding=8)
+    page = chat_page(list(range(60)))
+    h = 30 * 14
+    for tick in range(8):
+        detector.detect(stamped(animate(page[0:h].copy(), tick), tick / 12))
+    result = detector.detect(stamped(animate(page[71 : 71 + h].copy(), 8), 8 / 12))
+    assert [s.dy for s in result.scrolls] == [71]
+    area = result.scrolls[0].area
+    assert area.x == 0 and area.right >= 420  # the strips left of the patch scrolled
+    assert covers(result.dirty, Rect(20, h - 71 + 6, 380, 18))  # the new line is read
+    assert sum(r.area for r in result.dirty) <= 0.25 * W * h
+
+
+def test_animation_alone_never_looks_like_a_scroll():
+    detector = ChangeDetector(tile_size=64)
+    base = chat_page(list(range(14)))
+    for tick in range(15):
+        result = detector.detect(stamped(animate(base.copy(), tick, (60, 40, 500, 380)), tick))
+        assert result.scrolls == ()
+
+
+def test_a_video_filling_most_of_the_frame_is_never_silenced():
+    detector = ChangeDetector(tile_size=64, full_frame_fraction=1.0)
+    base = blank()
+    box = (0, 0, W, H // 5 * 3)
+    detector.detect(stamped(animate(base.copy(), 0, box), 0.0))
+    for tick in range(1, 15):
+        result = detector.detect(stamped(animate(base.copy(), tick, box), tick / 12))
+        assert result.changed
+
+
+def test_animation_settings_are_validated():
+    with pytest.raises(ValueError):
+        ChangeDetector(animated_window=3, animated_min_changes=4)
+    with pytest.raises(ValueError):
+        ChangeDetector(scroll_min_agreement=0)
