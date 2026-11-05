@@ -673,3 +673,32 @@ def test_repeated_short_message_twice_keeps_both_ids_across_a_scroll(now):
     result = t.update([blk("好", y=40, w=20), blk("好", y=140, w=20)], now=now())
     assert result.new == ()
     assert [b.line_id for b in result.visible] == ids
+
+
+# ---- TrackerUpdate.read -------------------------------------------------------------------
+
+
+def test_read_holds_only_lines_matched_in_this_update(now):
+    t = tracker(stable_reads=2)
+    a, b = "这是第一条测试消息啊", "这是第二条测试消息啊"
+    lines = [blk(a, y=100), blk(b, y=300)]
+    for _ in range(2):
+        first = t.update(lines, now=now())
+    ids = {x.text: x.line_id for x in first.visible}
+    assert first.read == {ids[a], ids[b]}
+    carried = t.update([blk(a, y=100)], now=now(), scanned=[Rect(0, 80, 400, 60)])
+    assert carried.read == {ids[a]}  # b lies outside the scanned region
+    assert {x.line_id for x in carried.visible} == {ids[a], ids[b]}
+    assert t.unchanged(now=now()).read == frozenset()
+
+
+def test_a_returning_line_is_in_read_when_read_again(now):
+    t = tracker(stable_reads=2)
+    text = "这一行会离开然后回来"
+    for _ in range(2):
+        first = t.update([blk(text)], now=now())
+    for _ in range(3):
+        t.update([], now=now(), scanned=None)
+    results = [t.update([blk(text)], now=now()) for _ in range(2)]
+    line_id = first.visible[0].line_id
+    assert results[-1].new == () and line_id in results[-1].read

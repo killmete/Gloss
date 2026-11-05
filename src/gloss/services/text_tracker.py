@@ -118,11 +118,14 @@ class TrackerUpdate:
     ``needs_translation`` to the translator. ``visible`` is every stable line on screen,
     including re-detections of known lines (same ``line_id``), so a renderer can place them.
     ``dropped`` lists ``line_id`` values that left the screen. All three are in reading order.
+    ``read`` holds the ``line_id`` of stable lines that a read in this very update matched
+    (including known lines that just came back); lines only carried along are not in it.
     """
 
     new: tuple[TextBlock, ...] = ()
     visible: tuple[TextBlock, ...] = ()
     dropped: tuple[str, ...] = ()
+    read: frozenset[str] = frozenset()
 
 
 @dataclass(slots=True)
@@ -215,7 +218,8 @@ class TextTracker:
                 touched.append(track)
         self._age(set(map(id, touched)), scanned, now)
         new = self._stabilise(now)
-        return self._result(new, before, now)
+        read = frozenset(t.line_id for t in touched if t.stable and t.line_id)
+        return self._result(new, before, now, read)
 
     def unchanged(self, *, now: float) -> TrackerUpdate:
         """The whole frame is unchanged, so every pending line earns a read without OCR."""
@@ -576,7 +580,9 @@ class TextTracker:
     def _live_ids(self) -> set[str]:
         return {t.line_id for t in self._tracks if t.stable and t.line_id}
 
-    def _result(self, new: list[_Track], before: set[str], now: float) -> TrackerUpdate:
+    def _result(
+        self, new: list[_Track], before: set[str], now: float, read: frozenset[str]
+    ) -> TrackerUpdate:
         stable = [t for t in self._tracks if t.stable]
         if self.config.group_lines and stable:
             self._assign_groups(stable)
@@ -591,7 +597,7 @@ class TextTracker:
         after = {b.line_id for b in visible}
         dropped = tuple(sorted(i for i in (before - after) | (self._left - after) if i))
         self._left.clear()
-        return TrackerUpdate(tuple(ordered_new), tuple(visible), dropped)
+        return TrackerUpdate(tuple(ordered_new), tuple(visible), dropped, read)
 
     def _expire(self, now: float) -> None:
         window = self.config.dedupe_window_s

@@ -327,6 +327,35 @@ def test_a_video_filling_most_of_the_frame_is_never_silenced():
         assert result.changed
 
 
+def _animated_detector(box):
+    detector = ChangeDetector(tile_size=64)
+    base = chat_page(list(range(16)))[:H]
+    for tick in range(14):
+        detector.detect(stamped(animate(base.copy(), tick, box), tick / 12))
+    return detector
+
+
+def test_animated_share_is_high_on_a_changing_cell_and_zero_on_still_pixels():
+    detector = _animated_detector((420, 100, 600, 300))
+    assert detector.animated_share(Rect(440, 120, 60, 40)) > 0.95
+    assert detector.animated_share(Rect(20, 20, 100, 40)) == 0.0
+
+
+def test_animated_share_of_a_half_covering_box_is_about_half():
+    detector = _animated_detector((420, 100, 600, 300))
+    assert detector.animated_share(Rect(360, 150, 120, 40)) == pytest.approx(0.5, abs=0.1)
+
+
+def test_animated_share_is_zero_without_trust_or_for_empty_or_outside_rects():
+    fresh = ChangeDetector(tile_size=64)
+    assert fresh.animated_share(Rect(0, 0, 100, 100)) == 0.0
+    detector = _animated_detector((420, 100, 600, 300))
+    assert detector.animated_share(Rect(430, 120, 0, 40)) == 0.0
+    assert detector.animated_share(Rect(5000, 5000, 40, 40)) == 0.0
+    video = _animated_detector((0, 0, W, H // 5 * 3))
+    assert video.animated_share(Rect(10, 10, 200, 100)) == 0.0
+
+
 def test_animation_settings_are_validated():
     with pytest.raises(ValueError):
         ChangeDetector(animated_window=3, animated_min_changes=4)

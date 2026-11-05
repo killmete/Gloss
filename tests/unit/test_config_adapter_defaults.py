@@ -325,6 +325,25 @@ def test_a_user_config_without_the_new_keys_loads_quietly(tmp_path):
     assert loaded.warnings == ()
     assert loaded.config.capture.animated_window == CONFIG.capture.animated_window
     assert loaded.config.ocr.piece_min_chars == CONFIG.ocr.piece_min_chars
+    assert loaded.config.ocr.animated_text_share == CONFIG.ocr.animated_text_share
+    assert loaded.config.ocr.animated_text_max_chars == CONFIG.ocr.animated_text_max_chars
+
+
+def test_animated_text_defaults_are_the_agreed_values():
+    # No code default exists yet; the pipeline reads these from config (ADR-0005 addendum).
+    assert CONFIG.ocr.animated_text_share == 0.5
+    assert CONFIG.ocr.animated_text_max_chars == 2
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("animated_text_share", 0), ("animated_text_share", 1), ("animated_text_max_chars", 0)],
+)
+def test_animated_text_edges_are_allowed(tmp_path, key, value):
+    user = _write(tmp_path / "config.toml", f"[ocr]\n{key} = {value}\n")
+    loaded = load_config(user_path=user)
+    assert loaded.warnings == ()
+    assert getattr(loaded.config.ocr, key) == value
 
 
 @pytest.mark.parametrize(
@@ -347,6 +366,12 @@ def test_a_user_config_without_the_new_keys_loads_quietly(tmp_path):
         ("ocr", "piece_inside", '"high"'),
         ("ocr", "piece_min_chars", "0"),
         ("ocr", "piece_min_chars", "1.5"),
+        ("ocr", "animated_text_share", "-0.1"),
+        ("ocr", "animated_text_share", "1.1"),
+        ("ocr", "animated_text_share", "true"),
+        ("ocr", "animated_text_max_chars", "-1"),
+        ("ocr", "animated_text_max_chars", "1.5"),
+        ("ocr", "animated_text_max_chars", "true"),
     ],
 )
 def test_bad_detector_or_piece_values_warn_and_use_the_default(tmp_path, section, key, value):

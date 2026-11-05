@@ -310,6 +310,33 @@ class ChangeDetector:
         padded_rects = [_padded(r, self._padding, width, height) for r in rects]
         return ChangeResult(True, tuple(merge_rects(padded_rects)), tuple(scrolls))
 
+    def animated_share(self, rect: Rect) -> float:
+        """Share (0..1) of ``rect`` (frame pixels) that lies on cells marked animated.
+
+        0.0 when nothing is marked, when animation is not trusted, or when ``rect`` is empty
+        or outside the frame. Safe to call from another thread while ``detect`` runs.
+        """
+        anim, cpx = self._anim, self._cpx  # one snapshot; detect() swaps the array whole
+        rows, cols = anim.shape
+        if rect.w <= 0 or rect.h <= 0 or not anim.any():
+            return 0.0
+        x0, y0 = max(0, rect.x), max(0, rect.y)
+        x1, y1 = min(cols * cpx, rect.x + rect.w), min(rows * cpx, rect.y + rect.h)
+        if x1 <= x0 or y1 <= y0:
+            return 0.0
+        c0, c1 = x0 // cpx, -(-x1 // cpx)
+        r0, r1 = y0 // cpx, -(-y1 // cpx)
+
+        def overlap(lo: int, hi: int, first: int, last: int) -> np.ndarray:
+            edges = np.arange(first, last + 1) * cpx
+            return np.minimum(edges[1:], hi) - np.maximum(edges[:-1], lo)
+
+        wx = overlap(x0, x1, c0, c1)
+        wy = overlap(y0, y1, r0, r1)
+        hit = anim[r0:r1, c0:c1]
+        share = float(wy @ hit @ wx) / float((x1 - x0) * (y1 - y0))
+        return min(1.0, max(0.0, share))
+
     # -- internals ------------------------------------------------------------------------
 
     def _remember(self, frame: Frame, gray: np.ndarray) -> None:

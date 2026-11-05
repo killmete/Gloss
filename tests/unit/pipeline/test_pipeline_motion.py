@@ -264,3 +264,95 @@ def test_ocr_alternately_splitting_a_stable_line_creates_no_new_lines_or_box_mov
         _read_again(r, cap, ocr)
     assert r.stage.texts == sent  # nothing new was sent for translation
     assert len(r.sink.snapshot()) == shown  # and no box moved or was added
+
+
+def test_a_scroll_merged_with_a_full_read_keeps_its_shift_so_lines_can_be_followed():
+    box = _Mailbox()
+    box.post(make_frame(w=400, h=600), scrolled(100, Rect(0, 500, 400, 100)))
+    full = ChangeResult(True, (Rect(0, 0, 400, 600),), (), True)
+    box.post(make_frame(w=400, h=600), full)
+    box.post(make_frame(w=400, h=600), scrolled(200, Rect(0, 400, 400, 200)))
+    work = box.take(0.0)
+    assert work.regions is None and work.scroll_dy == 300 and work.scroll_area == AREA
+
+
+def test_scrolls_of_different_areas_merged_into_a_full_read_keep_no_shift():
+    box = _Mailbox()
+    box.post(make_frame(w=400, h=600), scrolled(60, Rect(0, 532, 400, 68)))
+    other = ChangeResult(True, (Rect(0, 0, 50, 10),), (ScrollShift(Rect(0, 0, 200, 600), 30),))
+    box.post(make_frame(w=400, h=600), other)
+    work = box.take(0.0)
+    assert work.regions is None and work.scroll_dy == 0
+
+
+# ---- lines that come back ------------------------------------------------------------------
+
+BACK = "大家晚上好呀朋友们"
+
+
+def test_a_line_that_leaves_and_comes_back_is_shown_again_without_translating_it_again(rig):
+    r = rig(animated_suppression=False)
+    cap = r.capture("cap", solid(400, 200))
+    ocr = r.ocr("ocr", [block(BACK, y=40), block(LINE, y=120)])
+    r.start()
+    wait_until(lambda: _line_items(r, BACK), what="the line")
+    line_id = _line_items(r, BACK)[-1].result.line_id
+    sent = list(r.stage.texts)
+    ocr.blocks[:] = [block(LINE, y=120)]
+    for _ in range(8):
+        _read_again(r, cap, ocr)
+        if line_id in r.sink.removed:
+            break
+    assert line_id in r.sink.removed
+    shown = len(_line_items(r, BACK))
+    ocr.blocks[:] = [block(BACK, y=40), block(LINE, y=120)]
+    for _ in range(6):
+        _read_again(r, cap, ocr)
+        if len(_line_items(r, BACK)) > shown:
+            break
+    again = _line_items(r, BACK)
+    assert len(again) > shown, "the line came back but was never shown"
+    assert again[-1].result.line_id == line_id
+    assert again[-1].result.text == f"EN:{BACK}"
+    assert r.stage.texts == sent  # not translated a second time
+
+
+def test_a_new_line_read_from_a_frame_older_than_a_scroll_is_shown_where_it_is_now(rig):
+    r, cap, ocr = _scroll_rig(rig)
+    top = [
+        block(t, x=20, y=y, w=150, h=20)
+        for t, y in (("上面的消息", 20), ("中间的消息", 300), ("下面的消息", 500))
+    ]
+    late = block("新来的一条消息", x=20, y=400, w=150, h=20)  # appears just before the scroll
+    shifted = [
+        block("中间的消息", x=20, y=300 - DY, w=150, h=20),
+        block("新来的一条消息", x=20, y=400 - DY, w=150, h=20),
+        block("下面的消息", x=20, y=500 - DY, w=150, h=20),
+    ]
+    ocr.reader = _scroll_reader(top, shifted)
+    r.start()
+    wait_until(lambda: len(r.sink.shown()) >= 3, what="three translated lines")
+    ocr.reader = _scroll_reader([*top, late], shifted)
+    reads = len(ocr.calls)
+    cap.image = PATCHED  # the new line is seen once...
+    wait_until(lambda: len(ocr.calls) > reads, what="the first read of the new line")
+    time.sleep(0.05)
+    hold = r.event()
+    ocr.waits.append(hold)
+    reads = len(ocr.calls)
+    cap.image = with_patch(PATCHED, x=200)  # ...and again in a read that hangs, pre-scroll
+    wait_until(lambda: len(ocr.calls) > reads, what="the read that hangs")
+    cap.image = SCROLLED
+    wait_until(
+        lambda: _line_items(r, "中间的消息")[-1].bbox.y == ORIGIN[1] + 300 - DY,
+        what="the scroll fast path",
+    )
+    before = len(r.sink.snapshot())
+    hold.set()
+    wait_until(lambda: len(ocr.calls) >= reads + 2, what="the reads that follow")
+    time.sleep(0.3)
+    after = [
+        i.bbox.y for i in r.sink.snapshot()[before:] if i.result.source_text == "新来的一条消息"
+    ]
+    assert ORIGIN[1] + 400 not in after  # the late read never puts it back where it was
+    assert _line_items(r, "新来的一条消息")[-1].bbox.y == ORIGIN[1] + 400 - DY

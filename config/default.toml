@@ -62,6 +62,8 @@ dedupe_max_lines = 2000      # recent lines remembered for de-duplication (memor
 piece_inside = 0.8           # share (0-1) of a read's box inside a known line for it to count
                              # as a piece of that line, not a new line
 piece_min_chars = 2          # shortest read (1 or more characters) treated as a piece
+animated_text_share = 0.5    # share (0-1) of a line's box on animated spots for it to be ignored as decoration
+animated_text_max_chars = 2  # only lines this short (in characters) are ignored that way; 0 = off
 
 # Shared values (ocr.languages, ocr.profile, ocr.min_confidence) are passed to the engine.
 [ocr.adapters.rapidocr]

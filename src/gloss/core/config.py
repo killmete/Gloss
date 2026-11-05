@@ -178,6 +178,8 @@ class OCRConfig(Section):
     dedupe_max_lines: PositiveInt
     piece_inside: Number = Field(ge=0, le=1)
     piece_min_chars: PositiveInt
+    animated_text_share: Number = Field(ge=0, le=1)
+    animated_text_max_chars: NonNegativeInt
     adapters: AdapterTables
 
 

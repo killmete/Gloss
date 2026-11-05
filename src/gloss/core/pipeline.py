@@ -22,6 +22,7 @@ The pipeline knows ports only. Adapters come from the registry, by the names in 
 
 from __future__ import annotations
 
+import collections
 import logging
 import queue
 import threading
@@ -52,6 +53,7 @@ from gloss.core.registry import Registry
 from gloss.services.batching import collect_batch
 from gloss.services.black_frame import BlackFrameCheck
 from gloss.services.change_detector import ChangeDetector, ChangeResult
+from gloss.services.ocr_regions import merge_regions
 from gloss.services.reliability import CircuitBreaker
 from gloss.services.text_tracker import TextTracker, TrackerConfig, TrackerUpdate
 
@@ -59,6 +61,7 @@ log = logging.getLogger(__name__)
 
 _RANK = {"ok": 0, "degraded": 1, "down": 2}
 _IDLE_WAIT_S = 0.5  # how long an idle worker sleeps before checking for stop or new work
+_SCROLL_MEMORY = 64  # scrolls remembered for catching up late reads (a few seconds' worth)
 
 
 def worst(*healths: Health) -> Health:
@@ -345,7 +348,16 @@ class _Mailbox:
                     or dy
                     or old.frame.region != frame.region
                 ):
-                    self._work = _Work(frame, None)  # too much to merge: read it all
+                    # Too much to merge: read it all, but keep how far one area scrolled, so the
+                    # tracker can still follow known lines to where they are now.
+                    same = (
+                        len(change.scrolls) <= 1
+                        and old.frame.region == frame.region
+                        and (old.scroll_area is None or area is None or old.scroll_area == area)
+                    )
+                    total = old.scroll_dy + dy if same else 0
+                    keep_area = (area or old.scroll_area) if total else None
+                    self._work = _Work(frame, None, total, scroll_area=keep_area)
                 else:
                     self._work = _Work(frame, old.regions + regions)
             self._cond.notify()
@@ -440,8 +452,17 @@ class Pipeline:
         )
         self._bboxes: dict[str, Rect] = {}  # line_id -> desktop bbox, for lines on screen
         self._shown: dict[str, RenderItem] = {}  # line_id -> what was last shown
+        # Translations of lines that left the screen, so a line scrolled back into view (the
+        # tracker gives it its old line_id) is shown again without translating it again.
+        self._recent: collections.OrderedDict[str, RenderItem] = collections.OrderedDict()
         self._latest_meta: FrameMeta | None = None
         self._scrolled_at = float("-inf")  # timestamp of the newest frame moved by a scroll
+        # Recent scrolls (frame timestamp, desktop area, dy), to move lines read from a frame
+        # older than them to where they are now.
+        self._scrolls: collections.deque[tuple[float, Rect, int]] = collections.deque(
+            maxlen=_SCROLL_MEMORY
+        )
+        self._detector: ChangeDetector | None = None  # the capture stage's, for animated spots
         self._target = target
         self._target_serial = 0
         self._paused = False
@@ -561,6 +582,7 @@ class Pipeline:
             animated_max_share=c.animated_max_share,
             animated_unmark_cells=c.animated_unmark_cells,
         )
+        self._detector = detector
         black = BlackFrameCheck(cfg.capture.black_frame_reads, cfg.capture.black_frame_max_mean)
         choice = cfg.capture.active
         names = self._registry.resolve_chain("capture", choice.source, choice.fallbacks)
@@ -694,8 +716,14 @@ class Pipeline:
                 index, engine = got
                 stage.calling = chain.links[index].name
                 watch.begin()
+                regions = work.regions
+                if regions is not None:
+                    with self._lock:
+                        known = [b.bbox for b in self._tracker.visible]
+                    h, w = work.frame.image.shape[:2]
+                    regions = _whole_lines(regions, known, w, h, work.scroll_dy)
                 try:
-                    blocks = engine.recognize(work.frame, work.regions)
+                    blocks = engine.recognize(work.frame, regions)
                 except Exception as exc:
                     if self._current("ocr", generation):
                         chain.failed(index, exc)
@@ -714,12 +742,31 @@ class Pipeline:
                     if work.scroll_dy:
                         h, w = work.frame.image.shape[:2]
                         self._tracker.scroll(-work.scroll_dy, frame=Rect(0, 0, w, h))
-                    scanned = work.regions
+                    scanned = regions
+                    blocks = self._without_animated_marks(blocks)
                     update = self._tracker.update(blocks, now=self._clock(), scanned=scanned)
                     self._publish(update, work.frame)
         finally:
             if chain is not None:
                 chain.close()
+
+    def _without_animated_marks(self, blocks: Sequence[TextBlock]) -> Sequence[TextBlock]:
+        """Drop very short reads that sit on animated spots (a pulsing "new" badge).
+
+        They fade in and out, so OCR sees them on some frames only and their box would blink.
+        The detector's animation state may be a frame or two newer than the OCR frame; that is
+        close enough for a badge that pulses for seconds, but it is not exact.
+        """
+        o = self._config.ocr
+        detector = self._detector
+        if detector is None or o.animated_text_max_chars <= 0:
+            return blocks
+        return [
+            b
+            for b in blocks
+            if len(b.text.strip()) > o.animated_text_max_chars
+            or detector.animated_share(b.bbox) < o.animated_text_share
+        ]
 
     def _ocr_chain(self) -> _Chain:
         o = self._config.ocr
@@ -744,6 +791,7 @@ class Pipeline:
         with self._lock:
             for shift in change.scrolls:
                 area = shift.area.translated(ox, oy)
+                self._scrolls.append((frame.timestamp, area, shift.dy))
                 for line_id, bbox in list(self._bboxes.items()):
                     cx, cy = bbox.x + bbox.w // 2, bbox.y + bbox.h // 2
                     if not (area.x <= cx < area.right and area.y <= cy < area.bottom):
@@ -752,7 +800,7 @@ class Pipeline:
                     if _clip(new, area) is None:
                         gone.append(line_id)
                         self._bboxes.pop(line_id, None)
-                        self._shown.pop(line_id, None)
+                        self._forget(line_id)
                         continue
                     self._bboxes[line_id] = new
                     shown = self._shown.get(line_id)
@@ -779,32 +827,68 @@ class Pipeline:
         for block in update.visible:
             if block.line_id is None:
                 continue
+            line_id = block.line_id
             bbox = block.bbox.translated(ox, oy)
-            old = self._bboxes.get(block.line_id)
+            old = self._bboxes.get(line_id)
+            # A line read again after it left the screen: show its kept translation again.
+            back = line_id not in self._shown and line_id in update.read and line_id in self._recent
+            if old is None and stale:
+                bbox = self._catch_up(bbox, frame.timestamp)
+                if bbox is None:
+                    continue  # it has already scrolled out of view
             if old is not None:
                 if stale:
-                    continue  # a position from before a scroll already shown
-                steady = _steady(old, bbox, threshold)
-                if steady is None:
-                    continue  # OCR jitter
-                bbox = steady
-            self._bboxes[block.line_id] = bbox
-            shown = self._shown.get(block.line_id)
+                    if not back:
+                        continue  # a position from before a scroll already shown
+                    bbox = old
+                else:
+                    steady = _steady(old, bbox, threshold)
+                    if steady is None and not back:
+                        continue  # OCR jitter
+                    bbox = steady or old
+            self._bboxes[line_id] = bbox
+            shown = self._recent.pop(line_id) if back else self._shown.get(line_id)
             if shown is not None:
                 item = RenderItem(shown.result, bbox, shown.low_quality, shown.group_id)
-                self._shown[block.line_id] = item
+                self._shown[line_id] = item
                 moved.append(item)
         for block in update.new:
             if block.line_id is None or not block.needs_translation:
                 continue
-            self._queue_line(block, block.bbox.translated(ox, oy))
+            bbox = self._bboxes.get(block.line_id, block.bbox.translated(ox, oy))
+            self._queue_line(block, bbox)
         if update.dropped:
             for line_id in update.dropped:
                 self._bboxes.pop(line_id, None)
-                self._shown.pop(line_id, None)
+                self._forget(line_id)
             self._sink.remove_lines(update.dropped)
         if moved:
             self._sink.show_results(moved, self._latest_meta)
+
+    def _catch_up(self, bbox: Rect, since: float) -> Rect | None:
+        """Move a box read from a frame taken at ``since`` by every scroll shown after it."""
+        for at, area, dy in self._scrolls:
+            if at <= since:
+                continue
+            cx, cy = bbox.x + bbox.w // 2, bbox.y + bbox.h // 2
+            if not (area.x <= cx < area.right and area.y <= cy < area.bottom):
+                continue
+            bbox = bbox.translated(0, -dy)
+            if _clip(bbox, area) is None:
+                return None
+        return bbox
+
+    def _forget(self, line_id: str) -> None:
+        """A line left the screen: stop showing it, but keep its translation for a while."""
+        item = self._shown.pop(line_id, None)
+        if item is not None:
+            self._remember(line_id, item)
+
+    def _remember(self, line_id: str, item: RenderItem) -> None:
+        self._recent[line_id] = item
+        self._recent.move_to_end(line_id)
+        while len(self._recent) > self._config.ocr.dedupe_max_lines:
+            self._recent.popitem(last=False)
 
     def _queue_line(self, block: TextBlock, bbox: Rect) -> None:
         pending = _Pending(block.line_id or "", block.text, block.low_quality, block.group_id, bbox)
@@ -870,7 +954,11 @@ class Pipeline:
         items: list[RenderItem] = []
         with self._lock:
             for pending, result in zip(batch, results, strict=True):
-                bbox = self._bboxes.get(pending.line_id, pending.bbox)
+                bbox = self._bboxes.get(pending.line_id)
+                if bbox is None:  # it left the screen while it was being translated
+                    item = RenderItem(result, pending.bbox, pending.low_quality, pending.group_id)
+                    self._remember(pending.line_id, item)
+                    continue
                 item = RenderItem(result, bbox, pending.low_quality, pending.group_id)
                 self._shown[pending.line_id] = item
                 items.append(item)
@@ -919,6 +1007,52 @@ class Pipeline:
                 for p in lost
             ]
             self._show(lost, failed)
+
+
+def _whole_lines(
+    regions: Sequence[Rect], known: Sequence[Rect], width: int, height: int, scroll_dy: int = 0
+) -> list[Rect]:
+    """Grow changed regions so OCR never reads part of a known line.
+
+    A small change (an animated sticker next to a message) would otherwise be read on its
+    own, cutting the message in half and replacing it with a wrong, partial line. Each region
+    grows to cover every known line it touches (and the lines those now touch), then
+    overlapping regions merge. Regions stay no wider than the lines they hold, so OCR still
+    reads them at native size. ``known`` are line boxes before ``scroll_dy`` is applied (the
+    tracker shifts them later).
+    """
+    lines = [b.translated(0, -scroll_dy) if scroll_dy else b for b in known]
+    out = list(regions)
+    grown = True
+    while grown:
+        grown = False
+        nxt: list[Rect] = []
+        for r in out:
+            for line in lines:
+                touches = line.x < r.right and r.x < line.right and line.y < r.bottom
+                if touches and r.y < line.bottom and not _inside(line, r):
+                    r = _union(r, line)
+                    grown = True
+            nxt.append(r)
+        merged = merge_regions(nxt)
+        grown = grown or len(merged) != len(nxt)
+        out = merged
+    clipped = (_clip(r, Rect(0, 0, width, height)) for r in out)
+    return [r for r in clipped if r is not None]
+
+
+def _inside(inner: Rect, outer: Rect) -> bool:
+    return (
+        outer.x <= inner.x
+        and outer.y <= inner.y
+        and inner.right <= outer.right
+        and inner.bottom <= outer.bottom
+    )
+
+
+def _union(a: Rect, b: Rect) -> Rect:
+    x, y = min(a.x, b.x), min(a.y, b.y)
+    return Rect(x, y, max(a.right, b.right) - x, max(a.bottom, b.bottom) - y)
 
 
 def _clip(rect: Rect, bounds: Rect) -> Rect | None:
